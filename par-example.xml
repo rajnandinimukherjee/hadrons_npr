@@ -22,6 +22,8 @@
       <restoreSchedule>false</restoreSchedule>
       <!-- produce statistics DB? -->
       <makeStatDb>true</makeStatDb>
+      <statDbBase>statDb</statDbBase>
+      <statDbPeriodMs>50</statDbPeriodMs>
     </database>
     <!-- genetic scheduler parameters -->
     <genetic>
