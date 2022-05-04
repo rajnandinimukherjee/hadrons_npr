@@ -72,6 +72,13 @@ int main(int argc, char *argv[])
     std::string outputFolder = "npr_twisted";
 
     bool QED = false;
+    bool fourquark = false;
+
+    if ((QED) && (fourquark))
+    {
+        LOG(Error) << "QED fourquark operators are not implemented." << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     double every = 2;
 
