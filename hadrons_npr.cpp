@@ -38,6 +38,23 @@ int main(int argc, char *argv[])
 
     // create modules //////////////////////////////////////////////////////////
 
+    auto geometry = GridDefaultLatt();
+
+    if (!(geometry[Xp] == geometry[Yp] && geometry[Xp] == geometry[Zp]))
+    {
+        LOG(Error) << "The current implementation requires that all three spatial extents are identical." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    int Nl = geometry[Xp];
+    int Nt = geometry[Tp];
+    double T_over_L = 1.0 * Nt / Nl;
+
+    LOG(Message) << "T/L=" << T_over_L << std::endl;
+
+    double every = 1;
+
+
     double mass = 0.1;
     double csw = 1.1;
 
