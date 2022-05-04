@@ -4,6 +4,23 @@
 using namespace Grid;
 using namespace Hadrons;
 
+/* Replaces underscores in a string by spaces */
+std::string underscoreToSpace(std::string text)
+{
+    std::replace(text.begin(), text.end(), '_', ' ');
+    return text;
+}
+
+/* Replaces . by p and - by n in a string and removes all but one trailing zeros
+ * in order to create folder names based of doubles */
+std::string cleanString(std::string text)
+{
+    std::replace(text.begin(), text.end(), '.', 'p');
+    std::replace(text.begin(), text.end(), '-', 'n');
+    text.erase(text.find_last_not_of("0") + 2, std::string::npos);
+    return text;
+}
+
 int main(int argc, char *argv[])
 {
     // parse command line //////////////////////////////////////////////////////
@@ -48,15 +65,23 @@ int main(int argc, char *argv[])
 
     int Nl = geometry[Xp];
     int Nt = geometry[Tp];
-    double T_over_L = 1.0 * Nt / Nl;
+    double ToverL = 1.0 * Nt / Nl;
+    LOG(Message) << "T/L=" << ToverL << std::endl;
 
-    LOG(Message) << "T/L=" << T_over_L << std::endl;
+    // Input options, to be provided via xml file
+    std::string outputFolder = "npr_twisted";
 
-    double every = 1;
+    bool QED = false;
 
+    double every = 2;
 
     double mass = 0.1;
     double csw = 1.1;
+
+    // End of input options
+
+    outputFolder += "/m" + cleanString(std::to_string(mass)) + "/";
+    LOG(Message) << "outputFolder: " << outputFolder << std::endl;
 
     using MixedPrecisionSolver = MSolver::MixedPrecisionRBPrecCG;
 
@@ -74,11 +99,12 @@ int main(int argc, char *argv[])
     actionDPar.mass = mass;
     actionDPar.boundary = "1.0 1.0 1.0 1.0";
     actionDPar.twist = "0 0 0 0";
+
     // Wilson only
     actionDPar.cF = 1.0;
     actionDPar.csw_r = csw;
     actionDPar.csw_t = csw;
-    application.createModule<FermionAction>("action", actionDPar);
+    if (QED); application.createModule<FermionAction>("action", actionDPar);
 
     FermionActionF::Par actionFPar;
     actionFPar.gauge = "gauge_F";
@@ -89,25 +115,100 @@ int main(int argc, char *argv[])
     actionFPar.cF = 1.0;
     actionFPar.csw_r = csw;
     actionFPar.csw_t = csw;
-    application.createModule<FermionActionF>("action_F", actionFPar);
+    if (QED); application.createModule<FermionActionF>("action_F", actionFPar);
 
     MixedPrecisionSolver::Par solverPar;
-    solverPar.outerAction = "action";
-    solverPar.innerAction = "action_F";
     solverPar.residual = 1e-9;
     solverPar.maxInnerIteration = 300000;
     solverPar.maxOuterIteration = 100;
     solverPar.innerGuesser = "";
     solverPar.outerGuesser = "";
-    application.createModule<MixedPrecisionSolver>("cg", solverPar);
 
-    actionDPar.twist = actionFPar.twist = "0 0.34 0.34 0";
-    application.createModule<FermionAction>("action_twisted", actionDPar);
-    application.createModule<FermionActionF>("action_twisted_F", actionFPar);
+    if (QED)
+    {
+        solverPar.outerAction = "action";
+        solverPar.innerAction = "action_F";
+        application.createModule<MixedPrecisionSolver>("cg", solverPar);
+    }
 
-    solverPar.outerAction = "action_twisted";
-    solverPar.innerAction = "action_twisted_F";
-    application.createModule<MixedPrecisionSolver>("cg_twisted", solverPar);
+    // Create base momentum source
+    MSource::Momentum::Par momentumPar;
+    momentumPar.mom = "0 0 0 0";
+    application.createModule<MSource::Momentum>("zero_momentum_source", momentumPar);
+
+    // Prepate propagator parameters
+    MFermion::GaugeProp::Par quarkPar;
+    quarkPar.source = "zero_momentum_source";
+
+    // Prepare ExternalLeg parameters
+    MNPR::ExternalLeg::Par externalLegPar;
+    externalLegPar.pIn = momentumPar.mom;
+
+    // Prepare Bilinear parameters
+    MNPR::Bilinear::Par BilinearPar;
+    BilinearPar.pIn = momentumPar.mom;
+    BilinearPar.pOut = momentumPar.mom;
+
+    // Twist-2 type vertices.
+    for (int i_mom=std::max(1, int(1.0 / every)); i_mom<=int(Nl / every); i_mom++)
+    {
+        double twist = sqrt(every * i_mom / 2.0);
+        std::string p2 = std::to_string(2 * twist * twist);
+
+        std::string momentumFolder = outputFolder + "p2_" + cleanString(p2) + "/";
+
+        LOG(Debug) << i_mom << "\t" << twist << std::endl;
+        LOG(Debug) << "p2 = " << p2 << std::endl;
+        LOG(Debug) << momentumFolder << std::endl;
+
+        std::stringstream sstream1;
+        sstream1 << std::setprecision(17) << twist << "_" << twist << "_0.0_0.0";
+        std::string name1 = sstream1.str();
+
+        std::stringstream sstream2;
+        sstream2 << std::setprecision(17) << twist << "_0.0_" << twist << "_0.0";
+        std::string name2 = sstream2.str();
+
+        for(const std::string& name: std::vector<std::string> {name1, name2})
+        {
+            LOG(Debug) << "Name: " << name << std::endl;
+            LOG(Debug) << "Name space: " << underscoreToSpace(name) << std::endl;
+
+            // Construct action and solver names
+            std::string twisted_action_name = "action_twisted_" + name;
+            std::string twisted_action_nameF = twisted_action_name + "F";
+            std::string twisted_solver_name = "cg_twisted_" + name;
+
+            // Create action modules for given twist
+            actionDPar.twist = actionFPar.twist = underscoreToSpace(name);
+            application.createModule<FermionAction>(twisted_action_name, actionDPar);
+            application.createModule<FermionActionF>(twisted_action_nameF, actionFPar);
+
+            // Create corresponding solver module
+            solverPar.outerAction = twisted_action_name;
+            solverPar.innerAction = twisted_action_nameF;
+            application.createModule<MixedPrecisionSolver>(twisted_solver_name, solverPar);
+
+            // Create propagator module
+            std::string propagatorName = "Q_" + name;
+            quarkPar.solver = twisted_solver_name;
+            application.createModule<MFermion::GaugeProp>(propagatorName, quarkPar);
+
+            // Compute and save ExternalLeg to disk
+            std::string externalLegName = "ExternalLeg_" + name;
+            externalLegPar.qIn = propagatorName;
+            externalLegPar.output = momentumFolder + externalLegName;
+            application.createModule<MNPR::ExternalLeg>(externalLegName, externalLegPar);
+
+            // Compute and save Bilinear to disk
+            std::string bilinearName = "MOM_Bilinear_" + name + "_" + name;
+            BilinearPar.qIn = propagatorName;
+            BilinearPar.qOut = propagatorName;
+            BilinearPar.output = momentumFolder + bilinearName;
+            application.createModule<MNPR::Bilinear>(bilinearName, BilinearPar);
+        }
+    }
+
     // execution ///////////////////////////////////////////////////////////////
     try
     {
