@@ -41,10 +41,10 @@ int main(int argc, char *argv[])
     double mass = 0.1;
     double csw = 1.1;
 
-    typedef MSolver::MixedPrecisionRBPrecCG MixedPrecisionSolver;
+    using MixedPrecisionSolver = MSolver::MixedPrecisionRBPrecCG;
 
-    typedef MAction::WilsonExpClover FermionAction;
-    typedef MAction::WilsonExpCloverF FermionActionF;
+    using FermionAction = MAction::WilsonExpClover;
+    using FermionActionF = MAction::WilsonExpCloverF;
 
     application.createModule<MGauge::Unit>("gauge");
 
