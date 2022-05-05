@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    double delta_p2 = 2;
+    double delta_p2 = 2.0;
 
     double mass = 0.1;
     double csw = 1.1;
@@ -167,35 +167,59 @@ int main(int argc, char *argv[])
     // Twist-2 type vertices.
     for (int i_mom=std::max(1, int(1.0 / delta_p2)); i_mom<=int(Nl / delta_p2); i_mom++)
     {
-        double twist = sqrt(delta_p2 * i_mom / 2.0);
-        // Compute twist-1 and 4 twist here
-        double sym_twist = sqrt(delta_p2 * i_mom / 4.0);
-        // Check this
 
-        std::string p2 = std::to_string(2 * twist * twist);
+        double p2 = delta_p2 * i_mom;
+        std::string momentumFolder = outputFolder + "p2_" + cleanString(std::to_string(p2)) + "/";
 
-        std::string momentumFolder = outputFolder + "p2_" + cleanString(p2) + "/";
-
-        LOG(Debug) << i_mom << "\t" << twist << std::endl;
         LOG(Debug) << "p2 = " << p2 << std::endl;
         LOG(Debug) << momentumFolder << std::endl;
 
+        // Calculate twist that fulfills 2*twist^2=p^2
+        double twist = sqrt(delta_p2 * i_mom / 2.0);
+        assert(std::abs(p2 - 2 * twist * twist) < 1e-6);
+
+        // Calculate twist that fulfills 4*twist^2=p^2
+        double sym_twist = sqrt(delta_p2 * i_mom / 4.0);
+        assert(std::abs(p2 - 4 * sym_twist * sym_twist) < 1e-6);
+
+        std::stringstream sstream;
+
         // 1 1 0 0 type momenta
-        std::stringstream sstream1;
-        sstream1 << std::setprecision(17) << twist << "_" << twist << "_0.0_0.0";
-        std::string name1 = sstream1.str();
+        sstream << std::setprecision(17) << twist << "_" << twist << "_0.0_0.0";
+        std::string name_1100 = sstream.str();
+        sstream.str(std::string());
+        sstream.clear();
 
         // 1 0 1 0 type momenta
-        std::stringstream sstream2;
-        sstream2 << std::setprecision(17) << twist << "_0.0_" << twist << "_0.0";
-        std::string name2 = sstream2.str();
+        sstream << std::setprecision(17) << twist << "_0.0_" << twist << "_0.0";
+        std::string name_1010 = sstream.str();
+        sstream.str(std::string());
+        sstream.clear();
+
+        // 1 1 1 1 type momenta
+        sstream << std::setprecision(17) << sym_twist << "_" << sym_twist << "_" << sym_twist << "_" << ToverL * sym_twist;
+        std::string name_1111 = sstream.str();
+        sstream.str(std::string());
+        sstream.clear();
+
+        // 1 1 1 -1 type momenta
+        sstream << std::setprecision(17) << sym_twist << "_" << sym_twist << "_" << sym_twist << "_" << -ToverL * sym_twist;
+        std::string name_111n1 = sstream.str();
+        sstream.str(std::string());
+        sstream.clear();
+
+        // 0 0 0 2 type momenta
+        sstream << std::setprecision(17) << "0.0_0.0_0.0_" << 2 * ToverL * sym_twist;
+        std::string name_0002 = sstream.str();
+        sstream.str(std::string());
+        sstream.clear();
 
         // add additional names for twist-1 and 4
 
-        for(const std::string& name: std::vector<std::string> {name1, name2})
+        for(const std::string& name: std::vector<std::string> {name_1100, name_1010, name_1111, name_111n1, name_0002})
         {
-            LOG(Debug) << "Name: " << name << std::endl;
-            LOG(Debug) << "Name space: " << underscoreToSpace(name) << std::endl;
+
+            LOG(Debug) << name << std::endl;
 
             // Construct action and solver names
             std::string twisted_action_name = "action_twisted_" + name;
@@ -213,18 +237,18 @@ int main(int argc, char *argv[])
             application.createModule<MixedPrecisionSolver>(twisted_solver_name, solverPar);
 
             // Create propagator module
-            std::string propagatorName = "Q_" + name;
+            std::string propagatorName = "Q_0_" + name;
             quarkPar.solver = twisted_solver_name;
             application.createModule<MFermion::GaugeProp>(propagatorName, quarkPar);
 
             // Compute and save ExternalLeg to disk
-            std::string externalLegName = "ExternalLeg_" + name;
+            std::string externalLegName = "ExternalLeg_0_" + name;
             externalLegPar.qIn = propagatorName;
             externalLegPar.output = momentumFolder + externalLegName;
             application.createModule<MNPR::ExternalLeg>(externalLegName, externalLegPar);
 
             // Compute and save Bilinear to disk
-            std::string bilinearName = "MOM_Bilinear_" + name + "_" + name;
+            std::string bilinearName = "MOM_Bilinear_00_" + name + "_" + name;
             BilinearPar.qIn = propagatorName;
             BilinearPar.qOut = propagatorName;
             BilinearPar.output = momentumFolder + bilinearName;
@@ -233,7 +257,7 @@ int main(int argc, char *argv[])
             if (fourquark)
             {
                 // Compute and save FourQuarkFullyConnected to disk
-                std::string FourQuarkFullyConnectedName = "MOM_FourQuark_" + name + "_" + name;
+                std::string FourQuarkFullyConnectedName = "MOM_FourQuark_00_" + name + "_" + name;
                 FourQuarkFullyConnectedPar.qIn = propagatorName;
                 FourQuarkFullyConnectedPar.qOut = propagatorName;
                 FourQuarkFullyConnectedPar.output = momentumFolder + FourQuarkFullyConnectedName;
