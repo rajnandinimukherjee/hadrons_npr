@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    double every = 2;
+    double delta_p2 = 2;
 
     double mass = 0.1;
     double csw = 1.1;
@@ -106,7 +106,6 @@ int main(int argc, char *argv[])
     actionDPar.mass = mass;
     actionDPar.boundary = "1.0 1.0 1.0 1.0";
     actionDPar.twist = "0 0 0 0";
-
     // Wilson only
     actionDPar.cF = 1.0;
     actionDPar.csw_r = csw;
@@ -156,10 +155,23 @@ int main(int argc, char *argv[])
     BilinearPar.pIn = momentumPar.mom;
     BilinearPar.pOut = momentumPar.mom;
 
-    // Twist-2 type vertices.
-    for (int i_mom=std::max(1, int(1.0 / every)); i_mom<=int(Nl / every); i_mom++)
+    // Prepare FourQuarkFullyConnected parameters
+    MNPR::FourQuarkFullyConnected::Par FourQuarkFullyConnectedPar;
+    if (fourquark)
     {
-        double twist = sqrt(every * i_mom / 2.0);
+        FourQuarkFullyConnectedPar.pIn = momentumPar.mom;
+        FourQuarkFullyConnectedPar.pOut = momentumPar.mom;
+        FourQuarkFullyConnectedPar.gamma_basis = "diagonal_va_sp_tt";
+    }
+
+    // Twist-2 type vertices.
+    for (int i_mom=std::max(1, int(1.0 / delta_p2)); i_mom<=int(Nl / delta_p2); i_mom++)
+    {
+        double twist = sqrt(delta_p2 * i_mom / 2.0);
+        // Compute twist-1 and 4 twist here
+        double sym_twist = sqrt(delta_p2 * i_mom / 4.0);
+        // Check this
+
         std::string p2 = std::to_string(2 * twist * twist);
 
         std::string momentumFolder = outputFolder + "p2_" + cleanString(p2) + "/";
@@ -168,13 +180,17 @@ int main(int argc, char *argv[])
         LOG(Debug) << "p2 = " << p2 << std::endl;
         LOG(Debug) << momentumFolder << std::endl;
 
+        // 1 1 0 0 type momenta
         std::stringstream sstream1;
         sstream1 << std::setprecision(17) << twist << "_" << twist << "_0.0_0.0";
         std::string name1 = sstream1.str();
 
+        // 1 0 1 0 type momenta
         std::stringstream sstream2;
         sstream2 << std::setprecision(17) << twist << "_0.0_" << twist << "_0.0";
         std::string name2 = sstream2.str();
+
+        // add additional names for twist-1 and 4
 
         for(const std::string& name: std::vector<std::string> {name1, name2})
         {
@@ -213,6 +229,16 @@ int main(int argc, char *argv[])
             BilinearPar.qOut = propagatorName;
             BilinearPar.output = momentumFolder + bilinearName;
             application.createModule<MNPR::Bilinear>(bilinearName, BilinearPar);
+
+            if (fourquark)
+            {
+                // Compute and save FourQuarkFullyConnected to disk
+                std::string FourQuarkFullyConnectedName = "MOM_FourQuark_" + name + "_" + name;
+                FourQuarkFullyConnectedPar.qIn = propagatorName;
+                FourQuarkFullyConnectedPar.qOut = propagatorName;
+                FourQuarkFullyConnectedPar.output = momentumFolder + FourQuarkFullyConnectedName;
+                application.createModule<MNPR::FourQuarkFullyConnected>(FourQuarkFullyConnectedName, FourQuarkFullyConnectedPar);
+            }
         }
     }
 
