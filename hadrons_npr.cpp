@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
     // Input options, to be provided via xml file
     std::string outputFolder = "npr_twisted";
 
-    bool QED = false;
+    bool QED = true;
     bool fourquark = false;
 
     if ((QED) && (fourquark))
@@ -110,7 +110,10 @@ int main(int argc, char *argv[])
     actionDPar.cF = 1.0;
     actionDPar.csw_r = csw;
     actionDPar.csw_t = csw;
-    if (QED); application.createModule<FermionAction>("action", actionDPar);
+    if (QED)
+    {
+        application.createModule<FermionAction>("action", actionDPar);
+    }
 
     FermionActionF::Par actionFPar;
     actionFPar.gauge = "gauge_F";
@@ -121,7 +124,10 @@ int main(int argc, char *argv[])
     actionFPar.cF = 1.0;
     actionFPar.csw_r = csw;
     actionFPar.csw_t = csw;
-    if (QED); application.createModule<FermionActionF>("action_F", actionFPar);
+    if (QED)
+    {
+        application.createModule<FermionActionF>("action_F", actionFPar);
+    }
 
     MixedPrecisionSolver::Par solverPar;
     solverPar.residual = 1e-9;
@@ -144,7 +150,6 @@ int main(int argc, char *argv[])
 
     // Prepate propagator parameters
     MFermion::GaugeProp::Par quarkPar;
-    quarkPar.source = "zero_momentum_source";
 
     // Prepare ExternalLeg parameters
     MNPR::ExternalLeg::Par externalLegPar;
@@ -162,6 +167,27 @@ int main(int argc, char *argv[])
         FourQuarkFullyConnectedPar.pIn = momentumPar.mom;
         FourQuarkFullyConnectedPar.pOut = momentumPar.mom;
         FourQuarkFullyConnectedPar.gamma_basis = "diagonal_va_sp_tt";
+    }
+
+    MGauge::StochEm::Par stochEmPar;
+    MSource::SeqAslash::Par seqAslashPar;
+    MSource::SeqGamma::Par seqGammaPar;
+    if (QED)
+    {
+        stochEmPar.gauge = PhotonR::Gauge::feynman;
+        stochEmPar.zmScheme = PhotonR::ZmScheme::qedL;
+        stochEmPar.improvement = "";
+        application.createModule<MGauge::StochEm>("StochEm", stochEmPar);
+
+        seqAslashPar.tA = 0;
+        seqAslashPar.tB = Nt;
+        seqAslashPar.emField = "StochEm";
+        seqAslashPar.mom = "0 0 0 0";
+
+        seqGammaPar.tA = 0;
+        seqGammaPar.tB = Nt;
+        seqGammaPar.gamma = Gamma::Algebra::Identity;
+        seqGammaPar.mom = "0 0 0 0";
     }
 
     // Twist-2 type vertices.
@@ -238,6 +264,7 @@ int main(int argc, char *argv[])
 
             // Create propagator module
             std::string propagatorName = "Q_0_" + name;
+            quarkPar.source = "zero_momentum_source";
             quarkPar.solver = twisted_solver_name;
             application.createModule<MFermion::GaugeProp>(propagatorName, quarkPar);
 
@@ -247,12 +274,95 @@ int main(int argc, char *argv[])
             externalLegPar.output = momentumFolder + externalLegName;
             application.createModule<MNPR::ExternalLeg>(externalLegName, externalLegPar);
 
+            std::string propagatorName_1 = "Q_1_" + name;
+            std::string propagatorName_2 = "Q_2_" + name;
+            std::string propagatorName_S = "Q_S_" + name;
+            if (QED)
+            {
+                // Prepare and calculate propagator with one photon insertion.
+                std::string seqAslashName_1 = "SeqAslash_1_" + name;
+                seqAslashPar.q = propagatorName;
+                application.createModule<MSource::SeqAslash>(seqAslashName_1, seqAslashPar);
+
+                quarkPar.source = seqAslashName_1;
+                quarkPar.solver = "cg"; // Use untwisted solver
+                application.createModule<MFermion::GaugeProp>(propagatorName_1, quarkPar);
+
+                // Prepare and calculate propagator with two photon insertions.
+                std::string seqAslashName_2 = "SeqAslash_2_" + name;
+                seqAslashPar.q = propagatorName_1;
+                application.createModule<MSource::SeqAslash>(seqAslashName_2, seqAslashPar);
+
+                quarkPar.source = seqAslashName_2;
+                quarkPar.solver = "cg"; // Use untwisted solver
+                application.createModule<MFermion::GaugeProp>(propagatorName_2, quarkPar);
+
+                // Compute and save ExternalLeg with two photon insertions to disk
+                std::string externalLegName_2 = "ExternalLeg_2_" + name;
+                externalLegPar.qIn = propagatorName_2;
+                externalLegPar.output = momentumFolder + externalLegName_2;
+                application.createModule<MNPR::ExternalLeg>(externalLegName_2, externalLegPar);
+
+                // Prepare and calculate propagator with one scalar insertion.
+                std::string seqGammaName = "SeqGamma_" + name;
+                seqGammaPar.q = propagatorName;
+                application.createModule<MSource::SeqGamma>(seqGammaName, seqGammaPar);
+
+                quarkPar.source = seqGammaName;
+                quarkPar.solver = "cg"; // Use untwisted solver
+                application.createModule<MFermion::GaugeProp>(propagatorName_S, quarkPar);
+
+                // Compute and save ExternalLeg with one scalar insertion to disk
+                std::string externalLegName_S = "ExternalLeg_S_" + name;
+                externalLegPar.qIn = propagatorName_S;
+                externalLegPar.output = momentumFolder + externalLegName_S;
+                application.createModule<MNPR::ExternalLeg>(externalLegName_S, externalLegPar);
+            }
+
             // Compute and save Bilinear to disk
             std::string bilinearName = "MOM_Bilinear_00_" + name + "_" + name;
             BilinearPar.qIn = propagatorName;
             BilinearPar.qOut = propagatorName;
             BilinearPar.output = momentumFolder + bilinearName;
             application.createModule<MNPR::Bilinear>(bilinearName, BilinearPar);
+
+            if (QED)
+            {
+                // Compute and save Bilinear_11 to disk
+                std::string bilinearName_11 = "MOM_Bilinear_11_" + name + "_" + name;
+                BilinearPar.qIn = propagatorName_1;
+                BilinearPar.qOut = propagatorName_1;
+                BilinearPar.output = momentumFolder + bilinearName_11;
+                application.createModule<MNPR::Bilinear>(bilinearName_11, BilinearPar);
+
+                // Compute and save Bilinear_20 to disk
+                std::string bilinearName_20 = "MOM_Bilinear_20_" + name + "_" + name;
+                BilinearPar.qIn = propagatorName_2;
+                BilinearPar.qOut = propagatorName;
+                BilinearPar.output = momentumFolder + bilinearName_20;
+                application.createModule<MNPR::Bilinear>(bilinearName_20, BilinearPar);
+
+                // Compute and save Bilinear_02 to disk
+                std::string bilinearName_02 = "MOM_Bilinear_02_" + name + "_" + name;
+                BilinearPar.qIn = propagatorName;
+                BilinearPar.qOut = propagatorName_2;
+                BilinearPar.output = momentumFolder + bilinearName_02;
+                application.createModule<MNPR::Bilinear>(bilinearName_02, BilinearPar);
+
+                // Compute and save Bilinear_S0 to disk
+                std::string bilinearName_S0 = "MOM_Bilinear_S0_" + name + "_" + name;
+                BilinearPar.qIn = propagatorName_S;
+                BilinearPar.qOut = propagatorName;
+                BilinearPar.output = momentumFolder + bilinearName_S0;
+                application.createModule<MNPR::Bilinear>(bilinearName_S0, BilinearPar);
+
+                // Compute and save Bilinear_0S to disk
+                std::string bilinearName_0S = "MOM_Bilinear_0S_" + name + "_" + name;
+                BilinearPar.qIn = propagatorName;
+                BilinearPar.qOut = propagatorName_S;
+                BilinearPar.output = momentumFolder + bilinearName_0S;
+                application.createModule<MNPR::Bilinear>(bilinearName_0S, BilinearPar);
+            }
 
             if (fourquark)
             {
