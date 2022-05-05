@@ -264,6 +264,37 @@ int main(int argc, char *argv[])
                 application.createModule<MNPR::FourQuarkFullyConnected>(FourQuarkFullyConnectedName, FourQuarkFullyConnectedPar);
             }
         }
+
+        // Construct relevant combinations for SMOM vertices.
+        std::vector<std::pair<std::string, std::string>> smom_name_pairs;
+        smom_name_pairs.emplace_back(name_1100, name_1010);
+        smom_name_pairs.emplace_back(name_1111, name_111n1);
+        smom_name_pairs.emplace_back(name_1111, name_0002);
+
+        for(auto const i_pair: smom_name_pairs)
+        {
+            std::string name_in = i_pair.first;
+            std::string name_out = i_pair.second;
+
+            LOG(Debug) << "SMOM names : " << name_in << ", " << name_out << std::endl;
+
+            // Compute and save SMOM Bilinear to disk
+            std::string bilinearName = "SMOM_Bilinear_00_" + name_in + "_" + name_out;
+            BilinearPar.qIn = "Q_0_" + name_in;
+            BilinearPar.qOut = "Q_0_" + name_out;
+            BilinearPar.output = momentumFolder + bilinearName;
+            application.createModule<MNPR::Bilinear>(bilinearName, BilinearPar);
+
+            if (fourquark)
+            {
+                // Compute and save FourQuarkFullyConnected to disk
+                std::string FourQuarkFullyConnectedName = "SMOM_FourQuark_00_" + name_in + "_" + name_out;
+                FourQuarkFullyConnectedPar.qIn = "Q_0_" + name_in;
+                FourQuarkFullyConnectedPar.qOut = "Q_0_" + name_out;
+                FourQuarkFullyConnectedPar.output = momentumFolder + FourQuarkFullyConnectedName;
+                application.createModule<MNPR::FourQuarkFullyConnected>(FourQuarkFullyConnectedName, FourQuarkFullyConnectedPar);
+            }
+        }
     }
 
     // execution ///////////////////////////////////////////////////////////////
