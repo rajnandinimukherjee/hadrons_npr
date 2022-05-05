@@ -395,6 +395,44 @@ int main(int argc, char *argv[])
             BilinearPar.output = momentumFolder + bilinearName;
             application.createModule<MNPR::Bilinear>(bilinearName, BilinearPar);
 
+            if (QED)
+            {
+                // Compute and save Bilinear_11 to disk
+                std::string bilinearName_11 = "SMOM_Bilinear_11_" + name_in + "_" + name_out;
+                BilinearPar.qIn = "Q_1_" + name_in;
+                BilinearPar.qOut = "Q_1_" + name_out;
+                BilinearPar.output = momentumFolder + bilinearName_11;
+                application.createModule<MNPR::Bilinear>(bilinearName_11, BilinearPar);
+
+                // Compute and save Bilinear_20 to disk
+                std::string bilinearName_20 = "SMOM_Bilinear_20_" + name_in + "_" + name_out;
+                BilinearPar.qIn = "Q_2_" + name_in;
+                BilinearPar.qOut = "Q_0_" + name_out;
+                BilinearPar.output = momentumFolder + bilinearName_20;
+                application.createModule<MNPR::Bilinear>(bilinearName_20, BilinearPar);
+
+                // Compute and save Bilinear_02 to disk
+                std::string bilinearName_02 = "SMOM_Bilinear_02_" + name_in + "_" + name_out;
+                BilinearPar.qIn = "Q_0_" + name_in;
+                BilinearPar.qOut = "Q_2_" + name_out;
+                BilinearPar.output = momentumFolder + bilinearName_02;
+                application.createModule<MNPR::Bilinear>(bilinearName_02, BilinearPar);
+
+                // Compute and save Bilinear_S0 to disk
+                std::string bilinearName_S0 = "SMOM_Bilinear_S0_" + name_in + "_" + name_out;
+                BilinearPar.qIn = "Q_S_" + name_in;
+                BilinearPar.qOut = "Q_0_" + name_out;
+                BilinearPar.output = momentumFolder + bilinearName_S0;
+                application.createModule<MNPR::Bilinear>(bilinearName_S0, BilinearPar);
+
+                // Compute and save Bilinear_0S to disk
+                std::string bilinearName_0S = "SMOM_Bilinear_0S_" + name_in + "_" + name_out;
+                BilinearPar.qIn = "Q_0_" + name_in;
+                BilinearPar.qOut = "Q_S_" + name_out;
+                BilinearPar.output = momentumFolder + bilinearName_0S;
+                application.createModule<MNPR::Bilinear>(bilinearName_0S, BilinearPar);
+            }
+
             if (fourquark)
             {
                 // Compute and save FourQuarkFullyConnected to disk
