@@ -21,6 +21,33 @@ std::string cleanString(std::string text)
     return text;
 }
 
+namespace NprInputs
+{
+    class NprOptions : Serializable
+    {
+    public:
+        GRID_SERIALIZABLE_CLASS_MEMBERS(NprOptions,
+                                        double,     delta_p2,
+                                        bool,       QED,
+                                        bool,       fourquark,
+                                        std::string, outputFolder);
+    };
+
+    class Action : Serializable
+    {
+    public:
+        GRID_SERIALIZABLE_CLASS_MEMBERS(Action,
+                                        std::string, gaugeFieldType,
+                                        std::string, gaugeFieldPath);
+    };
+}
+
+struct NprPar
+{
+    NprInputs::NprOptions nprOptions;
+    NprInputs::Action     action;
+};
+
 int main(int argc, char *argv[])
 {
     // parse command line //////////////////////////////////////////////////////
@@ -40,20 +67,19 @@ int main(int argc, char *argv[])
     // initialise application //////////////////////////////////////////////////
     Application            application;
     Application::GlobalPar globalPar;
+    NprPar par;
 
     // reading parameters
     {
         XmlReader reader(parameterFileName);
 
         read(reader, "global", globalPar);
-
-        // read other application-specific parameters here
+        read(reader, "nprOptions", par.nprOptions);
+        read(reader, "action", par.action);
     }
 
     // global initialisation
     application.setPar(globalPar);
-
-    // create modules //////////////////////////////////////////////////////////
 
     auto geometry = GridDefaultLatt();
 
@@ -66,13 +92,12 @@ int main(int argc, char *argv[])
     int Nl = geometry[Xp];
     int Nt = geometry[Tp];
     double ToverL = 1.0 * Nt / Nl;
-    LOG(Message) << "T/L=" << ToverL << std::endl;
+    LOG(Debug) << "T/L=" << ToverL << std::endl;
 
-    // Input options, to be provided via xml file
-    std::string outputFolder = "npr_twisted";
-
-    bool QED = true;
-    bool fourquark = false;
+    double delta_p2 = par.nprOptions.delta_p2;
+    bool QED = par.nprOptions.QED;
+    bool fourquark = par.nprOptions.fourquark;
+    std::string outputFolder = par.nprOptions.outputFolder;
 
     if ((QED) && (fourquark))
     {
@@ -80,22 +105,42 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    double delta_p2 = 2.0;
-
+    // Input options, to be provided via xml file
     double mass = 0.1;
     double csw = 1.1;
-
     // End of input options
 
     outputFolder += "/m" + cleanString(std::to_string(mass)) + "/";
-    LOG(Message) << "outputFolder: " << outputFolder << std::endl;
+    LOG(Debug) << "outputFolder: " << outputFolder << std::endl;
 
     using MixedPrecisionSolver = MSolver::MixedPrecisionRBPrecCG;
 
     using FermionAction = MAction::WilsonExpClover;
     using FermionActionF = MAction::WilsonExpCloverF;
 
-    application.createModule<MGauge::Unit>("gauge");
+    // create modules //////////////////////////////////////////////////////////
+
+    if (par.action.gaugeFieldType == "Unit")
+    {
+        application.createModule<MGauge::Unit>("gauge");
+    }
+    else if (par.action.gaugeFieldType == "Nersc")
+    {
+        MIO::LoadNersc::Par gaugePar;
+        gaugePar.file = par.action.gaugeFieldPath;
+        application.createModule<MIO::LoadNersc>("gauge", gaugePar);
+    }
+    else if (par.action.gaugeFieldType == "openQcd")
+    {
+        MIO::LoadOpenQcd::Par gaugePar;
+        gaugePar.file = par.action.gaugeFieldPath;
+        application.createModule<MIO::LoadOpenQcd>("gauge", gaugePar);
+    }
+    else
+    {
+        LOG(Error) << "Unknown gaugeFieldType." << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     MUtilities::GaugeSinglePrecisionCast::Par gaugeFPar;
     gaugeFPar.field = "gauge";
@@ -265,7 +310,7 @@ int main(int argc, char *argv[])
             // Create propagator module
             std::string propagatorName = "Q_0_" + name;
             quarkPar.source = "zero_momentum_source";
-            quarkPar.solver = twisted_solver_name;
+            quarkPar.solver = twisted_solver_name; // Use solver with twisted action
             application.createModule<MFermion::GaugeProp>(propagatorName, quarkPar);
 
             // Compute and save ExternalLeg to disk

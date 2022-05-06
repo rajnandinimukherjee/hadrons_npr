@@ -5,9 +5,9 @@
     <!-- to file read an written by modules. It is also part of the     -->
     <!-- RNG seed.                                                      -->
     <trajCounter>
-      <start>1500</start>
-      <end>1520</end>
-      <step>20</step>
+      <start>1000</start>
+      <end>1010</end>
+      <step>10</step>
     </trajCounter>
     <database>
       <!-- application database (schedule, graph, object catalog, ...) -->
@@ -51,4 +51,14 @@
     <!-- corrupting files you should probably use -1.                       -->
     <parallelWriteMaxRetry>-1</parallelWriteMaxRetry>
   </global>
+  <nprOptions>
+    <delta_p2>1.0</delta_p2> <!-- Momentum sampling frequency in units of p^2 -->
+    <QED>false</QED> <!-- Decides whether QED_L corrections to order alpha_em are calculated.-->
+    <fourquark>false</fourquark> <!-- Decides whether fourquark vertices are calcluated. -->
+    <outputFolder>npr_twisted</outputFolder> <!-- Path in which the output is saved. -->
+  </nprOptions>
+  <action>
+    <gaugeFieldType>Unit</gaugeFieldType> <!-- Type of the gauge field, can be Unit, Nersc or openQcd -->
+    <gaugeFieldPath></gaugeFieldPath> <!-- Path to the gauge fields, is ignored if gaugeFieldType Unit is chosen. -->
+  </action>
 </grid>
