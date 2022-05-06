@@ -37,7 +37,7 @@
       <mutationRate>0.1</mutationRate>
     </genetic>
     <!-- run id (is part of seed for random numbers!) -->
-    <runId>id</runId>
+    <runId>npr_run_id</runId>
     <!-- output GraphViz file if not empty -->
     <graphFile></graphFile>
     <!-- output schedule file name (deprecated, use DB) -->

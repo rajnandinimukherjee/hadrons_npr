@@ -61,15 +61,13 @@ int main(int argc, char *argv[])
     }
     parameterFileName = argv[1];
 
-    // initialise Grid /////////////////////////////////////////////////////////
     Grid_init(&argc, &argv);
 
-    // initialise application //////////////////////////////////////////////////
     Application            application;
     Application::GlobalPar globalPar;
-    NprPar par;
+    NprPar                 par;
 
-    // reading parameters
+    // read parameters from xml file
     {
         XmlReader reader(parameterFileName);
 
@@ -78,9 +76,9 @@ int main(int argc, char *argv[])
         read(reader, "action", par.action);
     }
 
-    // global initialisation
     application.setPar(globalPar);
 
+    // Check lattice geometry
     auto geometry = GridDefaultLatt();
 
     if (!(geometry[Xp] == geometry[Yp] && geometry[Xp] == geometry[Zp]))
@@ -105,7 +103,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    // Input options, to be provided via xml file
+    // Action input options, to be provided via xml file
     double mass = 0.1;
     double csw = 1.1;
     // End of input options
@@ -118,8 +116,7 @@ int main(int argc, char *argv[])
     using FermionAction = MAction::WilsonExpClover;
     using FermionActionF = MAction::WilsonExpCloverF;
 
-    // create modules //////////////////////////////////////////////////////////
-
+    // Create gauge field
     if (par.action.gaugeFieldType == "Unit")
     {
         application.createModule<MGauge::Unit>("gauge");
@@ -146,6 +143,7 @@ int main(int argc, char *argv[])
     gaugeFPar.field = "gauge";
     application.createModule<MUtilities::GaugeSinglePrecisionCast>("gauge_F", gaugeFPar);
 
+    // Set base parameters for fermion action
     FermionAction::Par actionDPar;
     actionDPar.gauge = "gauge";
     actionDPar.mass = mass;
@@ -162,11 +160,11 @@ int main(int argc, char *argv[])
 
     FermionActionF::Par actionFPar;
     actionFPar.gauge = "gauge_F";
-    actionFPar.mass = mass;
-    actionFPar.boundary = "1.0 1.0 1.0 1.0";
-    actionFPar.twist = "0 0 0 0";
+    actionFPar.mass = actionDPar.mass;
+    actionFPar.boundary = actionDPar.boundary;
+    actionFPar.twist = actionDPar.twist;
     // Wilson only
-    actionFPar.cF = 1.0;
+    actionFPar.cF = actionDPar.cF;
     actionFPar.csw_r = csw;
     actionFPar.csw_t = csw;
     if (QED)
@@ -174,6 +172,7 @@ int main(int argc, char *argv[])
         application.createModule<FermionActionF>("action_F", actionFPar);
     }
 
+    // Set base parameters for solver
     MixedPrecisionSolver::Par solverPar;
     solverPar.residual = 1e-9;
     solverPar.maxInnerIteration = 300000;
@@ -214,6 +213,7 @@ int main(int argc, char *argv[])
         FourQuarkFullyConnectedPar.gamma_basis = "diagonal_va_sp_tt";
     }
 
+    // Prepare stochastic electromagnetic field and sequential insertion for the QED case
     MGauge::StochEm::Par stochEmPar;
     MSource::SeqAslash::Par seqAslashPar;
     MSource::SeqGamma::Par seqGammaPar;
@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
         seqGammaPar.mom = "0 0 0 0";
     }
 
-    // Twist-2 type vertices.
+    // Create modules that compute propagators and vertices on the three twist geometry trajectories
     for (int i_mom=std::max(1, int(1.0 / delta_p2)); i_mom<=int(Nl / delta_p2); i_mom++)
     {
 
@@ -284,8 +284,6 @@ int main(int argc, char *argv[])
         std::string name_0002 = sstream.str();
         sstream.str(std::string());
         sstream.clear();
-
-        // add additional names for twist-1 and 4
 
         for(const std::string& name: std::vector<std::string> {name_1100, name_1010, name_1111, name_111n1, name_0002})
         {
@@ -426,6 +424,7 @@ int main(int argc, char *argv[])
         smom_name_pairs.emplace_back(name_1111, name_111n1);
         smom_name_pairs.emplace_back(name_1111, name_0002);
 
+        // Compute SMOM vertex functions
         for(auto const i_pair: smom_name_pairs)
         {
             std::string name_in = i_pair.first;
@@ -490,7 +489,11 @@ int main(int argc, char *argv[])
         }
     }
 
-    // execution ///////////////////////////////////////////////////////////////
+    // Save application to xml file
+    Hadrons::mkdir("./hadronsxml");
+    application.saveParameterFile("./hadronsxml/" + globalPar.runId + ".xml", 16);
+
+    // Execution of the application
     try
     {
         application.run();
@@ -500,7 +503,6 @@ int main(int argc, char *argv[])
         Exceptions::abort(e);
     }
 
-    // epilogue ////////////////////////////////////////////////////////////////
     LOG(Message) << "Grid is finalizing now" << std::endl;
     Grid_finalize();
 
