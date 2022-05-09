@@ -491,7 +491,7 @@ int main(int argc, char *argv[])
 
     // Save application to xml file
     Hadrons::mkdir("./hadronsxml");
-    application.saveParameterFile("./hadronsxml/" + globalPar.runId + ".xml", 16);
+    application.saveParameterFile("./hadronsxml/hadrons_npr_" + globalPar.runId + ".xml", 16);
 
     // Execution of the application
     try
