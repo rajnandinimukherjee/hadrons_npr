@@ -21,3 +21,13 @@ To execute the program run
 mpirun -n N ./hadrons_npr ./input_file.xml --grid Nx.Ny.Nx.Nt --mpi Mx.My.Mz.Mt
 ```
 where `Nx.Ny.Nx.Nt` is the geometry of the lattice, `N` is the number of MPI processes and `Mx.My.Mz.Mt` describes the MPI process decomposition such that the product of all four components equals `N`.
+
+## Database
+The application tracks the exported files in an SQLite database. To get the in- and out- going momenta for every bilinear vertex one can for example query
+```sql
+SELECT bi.traj, bi.filename, ex1.momentum AS momIn, ex2.momentum AS momOut FROM bilinear bi
+LEFT OUTER JOIN externalLeg AS ex1
+ON bi.qIn=ex1.qIn
+LEFT OUTER JOIN externalLeg AS ex2
+ON bi.qOut=ex2.qIn
+```
