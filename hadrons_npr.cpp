@@ -21,6 +21,20 @@ std::string cleanString(std::string text)
     return text;
 }
 
+struct ExternalLegEntry: public SqlEntry
+{
+    HADRONS_SQL_FIELDS(SqlNotNull<std::string>, qIn,
+                       SqlNotNull<std::string>, momentum,
+                       SqlNotNull<std::string>, photon_insertions);
+};
+
+struct VertexEntry: public SqlEntry
+{
+    HADRONS_SQL_FIELDS(SqlNotNull<std::string>, qIn,
+                       SqlNotNull<std::string>, qOut,
+                       SqlNotNull<std::string>, photon_insertions);
+};
+
 namespace NprInputs
 {
     class NprOptions : Serializable
@@ -66,6 +80,10 @@ int main(int argc, char *argv[])
     Application            application;
     Application::GlobalPar globalPar;
     NprPar                 par;
+
+
+    ExternalLegEntry       elEntry;
+    VertexEntry          vertexEntry;
 
     // read parameters from xml file
     {
@@ -317,6 +335,11 @@ int main(int argc, char *argv[])
             externalLegPar.output = momentumFolder + externalLegName;
             application.createModule<MNPR::ExternalLeg>(externalLegName, externalLegPar);
 
+            elEntry.qIn = externalLegPar.qIn;
+            elEntry.momentum = actionDPar.twist;
+            elEntry.photon_insertions = "0";
+            application.setResultMetadata(externalLegName, "externalLeg", elEntry);
+
             std::string propagatorName_1 = "Q_1_" + name;
             std::string propagatorName_2 = "Q_2_" + name;
             std::string propagatorName_S = "Q_S_" + name;
@@ -346,6 +369,11 @@ int main(int argc, char *argv[])
                 externalLegPar.output = momentumFolder + externalLegName_2;
                 application.createModule<MNPR::ExternalLeg>(externalLegName_2, externalLegPar);
 
+                elEntry.qIn = externalLegPar.qIn;
+                elEntry.momentum = actionDPar.twist;
+                elEntry.photon_insertions = "2";
+                application.setResultMetadata(externalLegName_2, "externalLeg", elEntry);
+
                 // Prepare and calculate propagator with one scalar insertion.
                 std::string seqGammaName = "SeqGamma_" + name;
                 seqGammaPar.q = propagatorName;
@@ -360,6 +388,11 @@ int main(int argc, char *argv[])
                 externalLegPar.qIn = propagatorName_S;
                 externalLegPar.output = momentumFolder + externalLegName_S;
                 application.createModule<MNPR::ExternalLeg>(externalLegName_S, externalLegPar);
+
+                elEntry.qIn = externalLegPar.qIn;
+                elEntry.momentum = actionDPar.twist;
+                elEntry.photon_insertions = "S";
+                application.setResultMetadata(externalLegName_S, "externalLeg", elEntry);
             }
 
             // Compute and save Bilinear to disk
@@ -368,6 +401,11 @@ int main(int argc, char *argv[])
             BilinearPar.qOut = propagatorName;
             BilinearPar.output = momentumFolder + bilinearName;
             application.createModule<MNPR::Bilinear>(bilinearName, BilinearPar);
+
+            vertexEntry.qIn = BilinearPar.qIn;
+            vertexEntry.qOut = BilinearPar.qOut;
+            vertexEntry.photon_insertions = "00";
+            application.setResultMetadata(bilinearName, "bilinear", vertexEntry);
 
             if (QED)
             {
@@ -378,12 +416,22 @@ int main(int argc, char *argv[])
                 BilinearPar.output = momentumFolder + bilinearName_11;
                 application.createModule<MNPR::Bilinear>(bilinearName_11, BilinearPar);
 
+                vertexEntry.qIn = BilinearPar.qIn;
+                vertexEntry.qOut = BilinearPar.qOut;
+                vertexEntry.photon_insertions = "11";
+                application.setResultMetadata(bilinearName_11, "bilinear", vertexEntry);
+
                 // Compute and save Bilinear_20 to disk
                 std::string bilinearName_20 = "MOM_Bilinear_20_" + name + "_" + name;
                 BilinearPar.qIn = propagatorName_2;
                 BilinearPar.qOut = propagatorName;
                 BilinearPar.output = momentumFolder + bilinearName_20;
                 application.createModule<MNPR::Bilinear>(bilinearName_20, BilinearPar);
+
+                vertexEntry.qIn = BilinearPar.qIn;
+                vertexEntry.qOut = BilinearPar.qOut;
+                vertexEntry.photon_insertions = "20";
+                application.setResultMetadata(bilinearName_20, "bilinear", vertexEntry);
 
                 // Compute and save Bilinear_02 to disk
                 std::string bilinearName_02 = "MOM_Bilinear_02_" + name + "_" + name;
@@ -392,6 +440,11 @@ int main(int argc, char *argv[])
                 BilinearPar.output = momentumFolder + bilinearName_02;
                 application.createModule<MNPR::Bilinear>(bilinearName_02, BilinearPar);
 
+                vertexEntry.qIn = BilinearPar.qIn;
+                vertexEntry.qOut = BilinearPar.qOut;
+                vertexEntry.photon_insertions = "02";
+                application.setResultMetadata(bilinearName_02, "bilinear", vertexEntry);
+
                 // Compute and save Bilinear_S0 to disk
                 std::string bilinearName_S0 = "MOM_Bilinear_S0_" + name + "_" + name;
                 BilinearPar.qIn = propagatorName_S;
@@ -399,12 +452,22 @@ int main(int argc, char *argv[])
                 BilinearPar.output = momentumFolder + bilinearName_S0;
                 application.createModule<MNPR::Bilinear>(bilinearName_S0, BilinearPar);
 
+                vertexEntry.qIn = BilinearPar.qIn;
+                vertexEntry.qOut = BilinearPar.qOut;
+                vertexEntry.photon_insertions = "S0";
+                application.setResultMetadata(bilinearName_S0, "bilinear", vertexEntry);
+
                 // Compute and save Bilinear_0S to disk
                 std::string bilinearName_0S = "MOM_Bilinear_0S_" + name + "_" + name;
                 BilinearPar.qIn = propagatorName;
                 BilinearPar.qOut = propagatorName_S;
                 BilinearPar.output = momentumFolder + bilinearName_0S;
                 application.createModule<MNPR::Bilinear>(bilinearName_0S, BilinearPar);
+
+                vertexEntry.qIn = BilinearPar.qIn;
+                vertexEntry.qOut = BilinearPar.qOut;
+                vertexEntry.photon_insertions = "0S";
+                application.setResultMetadata(bilinearName_0S, "bilinear", vertexEntry);
             }
 
             if (fourquark)
@@ -415,6 +478,11 @@ int main(int argc, char *argv[])
                 FourQuarkFullyConnectedPar.qOut = propagatorName;
                 FourQuarkFullyConnectedPar.output = momentumFolder + FourQuarkFullyConnectedName;
                 application.createModule<MNPR::FourQuarkFullyConnected>(FourQuarkFullyConnectedName, FourQuarkFullyConnectedPar);
+
+                vertexEntry.qIn = FourQuarkFullyConnectedPar.qIn;
+                vertexEntry.qOut = FourQuarkFullyConnectedPar.qOut;
+                vertexEntry.photon_insertions = "00";
+                application.setResultMetadata(FourQuarkFullyConnectedName, "fourquark", vertexEntry);
             }
         }
 
@@ -439,6 +507,11 @@ int main(int argc, char *argv[])
             BilinearPar.output = momentumFolder + bilinearName;
             application.createModule<MNPR::Bilinear>(bilinearName, BilinearPar);
 
+            vertexEntry.qIn = BilinearPar.qIn;
+            vertexEntry.qOut = BilinearPar.qOut;
+            vertexEntry.photon_insertions = "00";
+            application.setResultMetadata(bilinearName, "bilinear", vertexEntry);
+
             if (QED)
             {
                 // Compute and save Bilinear_11 to disk
@@ -448,12 +521,22 @@ int main(int argc, char *argv[])
                 BilinearPar.output = momentumFolder + bilinearName_11;
                 application.createModule<MNPR::Bilinear>(bilinearName_11, BilinearPar);
 
+                vertexEntry.qIn = BilinearPar.qIn;
+                vertexEntry.qOut = BilinearPar.qOut;
+                vertexEntry.photon_insertions = "11";
+                application.setResultMetadata(bilinearName_11, "bilinear", vertexEntry);
+
                 // Compute and save Bilinear_20 to disk
                 std::string bilinearName_20 = "SMOM_Bilinear_20_" + name_in + "_" + name_out;
                 BilinearPar.qIn = "Q_2_" + name_in;
                 BilinearPar.qOut = "Q_0_" + name_out;
                 BilinearPar.output = momentumFolder + bilinearName_20;
                 application.createModule<MNPR::Bilinear>(bilinearName_20, BilinearPar);
+
+                vertexEntry.qIn = BilinearPar.qIn;
+                vertexEntry.qOut = BilinearPar.qOut;
+                vertexEntry.photon_insertions = "20";
+                application.setResultMetadata(bilinearName_20, "bilinear", vertexEntry);
 
                 // Compute and save Bilinear_02 to disk
                 std::string bilinearName_02 = "SMOM_Bilinear_02_" + name_in + "_" + name_out;
@@ -462,6 +545,11 @@ int main(int argc, char *argv[])
                 BilinearPar.output = momentumFolder + bilinearName_02;
                 application.createModule<MNPR::Bilinear>(bilinearName_02, BilinearPar);
 
+                vertexEntry.qIn = BilinearPar.qIn;
+                vertexEntry.qOut = BilinearPar.qOut;
+                vertexEntry.photon_insertions = "02";
+                application.setResultMetadata(bilinearName_02, "bilinear", vertexEntry);
+
                 // Compute and save Bilinear_S0 to disk
                 std::string bilinearName_S0 = "SMOM_Bilinear_S0_" + name_in + "_" + name_out;
                 BilinearPar.qIn = "Q_S_" + name_in;
@@ -469,12 +557,22 @@ int main(int argc, char *argv[])
                 BilinearPar.output = momentumFolder + bilinearName_S0;
                 application.createModule<MNPR::Bilinear>(bilinearName_S0, BilinearPar);
 
+                vertexEntry.qIn = BilinearPar.qIn;
+                vertexEntry.qOut = BilinearPar.qOut;
+                vertexEntry.photon_insertions = "S0";
+                application.setResultMetadata(bilinearName_S0, "bilinear", vertexEntry);
+
                 // Compute and save Bilinear_0S to disk
                 std::string bilinearName_0S = "SMOM_Bilinear_0S_" + name_in + "_" + name_out;
                 BilinearPar.qIn = "Q_0_" + name_in;
                 BilinearPar.qOut = "Q_S_" + name_out;
                 BilinearPar.output = momentumFolder + bilinearName_0S;
                 application.createModule<MNPR::Bilinear>(bilinearName_0S, BilinearPar);
+
+                vertexEntry.qIn = BilinearPar.qIn;
+                vertexEntry.qOut = BilinearPar.qOut;
+                vertexEntry.photon_insertions = "0S";
+                application.setResultMetadata(bilinearName_0S, "bilinear", vertexEntry);
             }
 
             if (fourquark)
@@ -485,6 +583,11 @@ int main(int argc, char *argv[])
                 FourQuarkFullyConnectedPar.qOut = "Q_0_" + name_out;
                 FourQuarkFullyConnectedPar.output = momentumFolder + FourQuarkFullyConnectedName;
                 application.createModule<MNPR::FourQuarkFullyConnected>(FourQuarkFullyConnectedName, FourQuarkFullyConnectedPar);
+
+                vertexEntry.qIn = FourQuarkFullyConnectedPar.qIn;
+                vertexEntry.qOut = FourQuarkFullyConnectedPar.qOut;
+                vertexEntry.photon_insertions = "00";
+                application.setResultMetadata(FourQuarkFullyConnectedName, "fourquark", vertexEntry);
             }
         }
     }

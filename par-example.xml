@@ -13,7 +13,7 @@
       <!-- application database (schedule, graph, object catalog, ...) -->
       <applicationDb>app.db</applicationDb>
       <!-- result database (result file catalog) -->
-      <resultDb>results.db</resultDb>
+      <resultDb>npr_results.db</resultDb>
       <!-- restore module graph from application DB? -->
       <restoreModules>false</restoreModules>
       <!-- restore memory profile from application DB? -->
