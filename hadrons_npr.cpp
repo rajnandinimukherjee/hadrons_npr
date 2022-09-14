@@ -47,19 +47,35 @@ namespace NprInputs
                                         std::string, outputFolder);
     };
 
+    class GaugeField : Serializable
+    {
+    public:
+        GRID_SERIALIZABLE_CLASS_MEMBERS(GaugeField,
+                                        std::string, gaugeFieldType,
+                                        std::string, gaugeFieldPath);
+    };
+
     class Action : Serializable
     {
     public:
-        GRID_SERIALIZABLE_CLASS_MEMBERS(Action,
-                                        std::string, gaugeFieldType,
-                                        std::string, gaugeFieldPath);
+        #ifdef MOBIUS
+            GRID_SERIALIZABLE_CLASS_MEMBERS(Action,
+                                            double, mass,
+                                            double, M5,
+                                            int, Ls);
+        #else // WilsonExpClover
+            GRID_SERIALIZABLE_CLASS_MEMBERS(Action,
+                                            double, mass,
+                                            double, csw);
+        #endif
     };
 }
 
 struct NprPar
 {
     NprInputs::NprOptions nprOptions;
-    NprInputs::Action     action;
+    NprInputs::GaugeField gaugeField;
+    NprInputs::Action action;
 };
 
 int main(int argc, char *argv[])
@@ -83,7 +99,7 @@ int main(int argc, char *argv[])
 
 
     ExternalLegEntry       elEntry;
-    VertexEntry          vertexEntry;
+    VertexEntry            vertexEntry;
 
     // read parameters from xml file
     {
@@ -91,6 +107,7 @@ int main(int argc, char *argv[])
 
         read(reader, "global", globalPar);
         read(reader, "nprOptions", par.nprOptions);
+        read(reader, "gaugeField", par.gaugeField);
         read(reader, "action", par.action);
     }
 
@@ -121,34 +138,36 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    // Action input options, to be provided via xml file
-    double mass = 0.1;
-    double csw = 1.1;
-    // End of input options
 
-    outputFolder += "/m" + cleanString(std::to_string(mass)) + "/";
+    outputFolder += "/m" + cleanString(std::to_string(par.action.mass)) + "/";
     LOG(Debug) << "outputFolder: " << outputFolder << std::endl;
 
     using MixedPrecisionSolver = MSolver::MixedPrecisionRBPrecCG;
 
-    using FermionAction = MAction::WilsonExpClover;
-    using FermionActionF = MAction::WilsonExpCloverF;
+
+    #ifdef MOBIUS
+        using FermionAction = MAction::MobiusDWF;
+        using FermionActionF = MAction::MobiusDWFF;
+    #else // WilsonExpClover
+        using FermionAction = MAction::WilsonExpClover;
+        using FermionActionF = MAction::WilsonExpCloverF;
+    #endif
 
     // Create gauge field
-    if (par.action.gaugeFieldType == "Unit")
+    if (par.gaugeField.gaugeFieldType == "Unit")
     {
         application.createModule<MGauge::Unit>("gauge");
     }
-    else if (par.action.gaugeFieldType == "Nersc")
+    else if (par.gaugeField.gaugeFieldType == "Nersc")
     {
         MIO::LoadNersc::Par gaugePar;
-        gaugePar.file = par.action.gaugeFieldPath;
+        gaugePar.file = par.gaugeField.gaugeFieldPath;
         application.createModule<MIO::LoadNersc>("gauge", gaugePar);
     }
-    else if (par.action.gaugeFieldType == "openQcd")
+    else if (par.gaugeField.gaugeFieldType == "openQcd")
     {
         MIO::LoadOpenQcd::Par gaugePar;
-        gaugePar.file = par.action.gaugeFieldPath;
+        gaugePar.file = par.gaugeField.gaugeFieldPath;
         application.createModule<MIO::LoadOpenQcd>("gauge", gaugePar);
     }
     else
@@ -164,13 +183,20 @@ int main(int argc, char *argv[])
     // Set base parameters for fermion action
     FermionAction::Par actionDPar;
     actionDPar.gauge = "gauge";
-    actionDPar.mass = mass;
+    actionDPar.mass = par.action.mass;
     actionDPar.boundary = "1.0 1.0 1.0 1.0";
     actionDPar.twist = "0 0 0 0";
-    // Wilson only
-    actionDPar.cF = 1.0;
-    actionDPar.csw_r = csw;
-    actionDPar.csw_t = csw;
+    #ifdef MOBIUS
+        actionDPar.Ls = par.action.Ls;
+        actionDPar.M5 = par.action.M5;
+        actionDPar.b = 1.5;
+        actionDPar.c = 0.5;
+    #else // WilsonExpClover
+        actionDPar.cF = 1.0;
+        actionDPar.csw_r = par.action.csw;
+        actionDPar.csw_t = par.action.csw;
+    #endif
+
     if (QED)
     {
         application.createModule<FermionAction>("action", actionDPar);
@@ -181,10 +207,17 @@ int main(int argc, char *argv[])
     actionFPar.mass = actionDPar.mass;
     actionFPar.boundary = actionDPar.boundary;
     actionFPar.twist = actionDPar.twist;
-    // Wilson only
-    actionFPar.cF = actionDPar.cF;
-    actionFPar.csw_r = csw;
-    actionFPar.csw_t = csw;
+    #ifdef MOBIUS
+        actionFPar.Ls = actionDPar.Ls;
+        actionFPar.M5 = actionDPar.M5;
+        actionFPar.b = actionDPar.b;
+        actionFPar.c = actionDPar.c;
+    #else // WilsonExpClover
+        actionFPar.cF = actionDPar.cF;
+        actionFPar.csw_r = actionDPar.csw_r;
+        actionFPar.csw_t = actionDPar.csw_t;
+    #endif
+
     if (QED)
     {
         application.createModule<FermionActionF>("action_F", actionFPar);

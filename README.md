@@ -12,7 +12,7 @@ Then compile via:
 ./bootstrap.sh
 mkdir build
 cd build
-../configure --with-hadrons=<Hadrons install prefix>
+../configure --with-hadrons=<Hadrons install prefix> (CPPFLAGS=-DMOBIUS=1)
 make
 ```
 

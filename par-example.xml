@@ -57,8 +57,12 @@
     <fourquark>false</fourquark> <!-- Decides whether fourquark vertices are calcluated. -->
     <outputFolder>npr_twisted</outputFolder> <!-- Path in which the output is saved. -->
   </nprOptions>
-  <action>
+  <gaugeField>
     <gaugeFieldType>Unit</gaugeFieldType> <!-- Type of the gauge field, can be Unit, Nersc or openQcd -->
     <gaugeFieldPath></gaugeFieldPath> <!-- Path to the gauge fields, is ignored if gaugeFieldType Unit is chosen. -->
+  </gaugeField>
+  <action>
+    <mass>0.15</mass> <!-- Type of the gauge field, can be Unit, Nersc or openQcd -->
+    <csw>1.2</csw> <!-- Path to the gauge fields, is ignored if gaugeFieldType Unit is chosen. -->
   </action>
 </grid>
