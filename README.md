@@ -15,7 +15,7 @@ cd build
 ../configure --with-hadrons=<Hadrons install prefix> (CPPFLAGS=-DMOBIUS) (CPPFLAGS=-DBICGSTAB)
 make
 ```
-by default the `WilsonExpClover` action and the `MixedPrecisionRBPrecCG` solver are used. These defaults can be altered by specifying `CPPFLAGS` as indicated above.
+by default the `WilsonExpClover` action and the `MixedPrecisionRBPrecCG` solver are used. These defaults can be altered by specifying `CPPFLAGS` as indicated above. For now the Möbius DWF fermion action and the `MixedPrecisionRBPrecBiCGSTAB` are available as alternatives. (Note that the DWF action only works with the standard CG solver)
 
 To execute the program run
 ``` bash
@@ -26,9 +26,8 @@ where `Nx.Ny.Nx.Nt` is the geometry of the lattice, `N` is the number of MPI pro
 ## Database
 The application tracks the exported files in an SQLite database. To get the in- and out- going momenta for every bilinear vertex one can for example query
 ```sql
-SELECT bi.traj, bi.filename, ex1.momentum AS momIn, ex2.momentum AS momOut FROM bilinear bi
-LEFT OUTER JOIN externalLeg AS ex1
-ON bi.qIn=ex1.qIn
-LEFT OUTER JOIN externalLeg AS ex2
-ON bi.qOut=ex2.qIn
+SELECT bi.traj, bi.filename, ex1.momentum AS momIn, ex2.momentum AS momOut
+  FROM bilinear bi
+       LEFT OUTER JOIN externalLeg AS ex1 ON bi.qIn=ex1.qIn
+       LEFT OUTER JOIN externalLeg AS ex2 ON bi.qOut=ex2.qIn
 ```
