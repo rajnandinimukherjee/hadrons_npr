@@ -62,7 +62,12 @@
     <gaugeFieldPath></gaugeFieldPath> <!-- Path to the gauge fields, is ignored if gaugeFieldType Unit is chosen. -->
   </gaugeField>
   <action>
-    <mass>0.15</mass> <!-- Type of the gauge field, can be Unit, Nersc or openQcd -->
-    <csw>1.2</csw> <!-- Path to the gauge fields, is ignored if gaugeFieldType Unit is chosen. -->
+    <mass>0.15</mass> <!-- quark mass -->
+    <csw>1.2</csw> <!-- clover term coefficient -->
   </action>
+  <solver>
+    <residual>1e-8</residual> <!-- solver residual -->
+    <maxInnerIteration>60000</maxInnerIteration> <!-- inner iteration limit -->
+    <maxOuterIteration>100</maxOuterIteration> <!-- outer iteration limit -->
+  </solver>
 </grid>

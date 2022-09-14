@@ -69,6 +69,15 @@ namespace NprInputs
                                             double, csw);
         #endif
     };
+
+    class Solver : Serializable
+    {
+    public:
+        GRID_SERIALIZABLE_CLASS_MEMBERS(Solver,
+                                        double, residual,
+                                        int, maxInnerIteration,
+                                        int, maxOuterIteration);
+    };
 }
 
 struct NprPar
@@ -76,6 +85,7 @@ struct NprPar
     NprInputs::NprOptions nprOptions;
     NprInputs::GaugeField gaugeField;
     NprInputs::Action action;
+    NprInputs::Solver solver;
 };
 
 int main(int argc, char *argv[])
@@ -97,7 +107,6 @@ int main(int argc, char *argv[])
     Application::GlobalPar globalPar;
     NprPar                 par;
 
-
     ExternalLegEntry       elEntry;
     VertexEntry            vertexEntry;
 
@@ -109,6 +118,7 @@ int main(int argc, char *argv[])
         read(reader, "nprOptions", par.nprOptions);
         read(reader, "gaugeField", par.gaugeField);
         read(reader, "action", par.action);
+        read(reader, "solver", par.solver);
     }
 
     application.setPar(globalPar);
@@ -228,9 +238,9 @@ int main(int argc, char *argv[])
 
     // Set base parameters for solver
     MixedPrecisionSolver::Par solverPar;
-    solverPar.residual = 1e-9;
-    solverPar.maxInnerIteration = 300000;
-    solverPar.maxOuterIteration = 100;
+    solverPar.residual = par.solver.residual;
+    solverPar.maxInnerIteration = par.solver.maxInnerIteration;
+    solverPar.maxOuterIteration = par.solver.maxOuterIteration;
     solverPar.innerGuesser = "";
     solverPar.outerGuesser = "";
 
