@@ -142,8 +142,11 @@ int main(int argc, char *argv[])
     outputFolder += "/m" + cleanString(std::to_string(par.action.mass)) + "/";
     LOG(Debug) << "outputFolder: " << outputFolder << std::endl;
 
-    using MixedPrecisionSolver = MSolver::MixedPrecisionRBPrecCG;
-
+    #ifdef BICGSTAB
+        using MixedPrecisionSolver = MSolver::MixedPrecisionRBPrecBiCGSTAB;
+    #else
+        using MixedPrecisionSolver = MSolver::MixedPrecisionRBPrecCG;
+    #endif
 
     #ifdef MOBIUS
         using FermionAction = MAction::MobiusDWF;

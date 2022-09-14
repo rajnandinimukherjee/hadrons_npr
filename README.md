@@ -12,9 +12,10 @@ Then compile via:
 ./bootstrap.sh
 mkdir build
 cd build
-../configure --with-hadrons=<Hadrons install prefix> (CPPFLAGS=-DMOBIUS=1)
+../configure --with-hadrons=<Hadrons install prefix> (CPPFLAGS=-DMOBIUS) (CPPFLAGS=-DBICGSTAB)
 make
 ```
+by default the `WilsonExpClover` action and the `MixedPrecisionRBPrecCG` solver are used. These defaults can be altered by specifying `CPPFLAGS` as indicated above.
 
 To execute the program run
 ``` bash
