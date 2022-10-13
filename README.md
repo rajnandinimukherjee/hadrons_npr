@@ -1,18 +1,25 @@
 # NPR production code
 
-Computes propagators and vertex functions for non-perturbative renormalization in regularization independent momentum-subtraction schemes with MOM and SMOM kinematics.
-The program can optionally compute fourquark vertex functions or QED_L corrections to first order in the electromagnetic coupling constant.
+Computes propagators and vertex functions for non-perturbative renormalization in regularization independent momentum-subtraction schemes with MOM and SMOM kinematics based on the [NPR modules](https://github.com/aportelli/Hadrons/tree/develop/Hadrons/Modules/MNPR) of [Hadrons](https://github.com/aportelli/Hadrons).
+The program can optionally compute fourquark vertex functions or `QED_L` corrections to first order in the electromagnetic coupling constant.
 
 ## Execution
 Install [Grid](https://github.com/paboyle/Grid)
 and [Hadrons](https://github.com/aportelli/Hadrons) on their `develop` branch.
-Then compile via:
-
+For CPU architectures compile via:
 ``` bash
 ./bootstrap.sh
 mkdir build
 cd build
 ../configure --with-hadrons=<Hadrons install prefix> (CPPFLAGS=-DMOBIUS) (CPPFLAGS=-DBICGSTAB)
+make
+```
+For Nvidia GPU accelerated architectures cross-compile via:
+``` bash
+./bootstrap.sh
+mkdir build
+cd build
+../configure --host=aarch64-linux-gnu --with-hadrons=<Hadrons install prefix> CC=gcc CXX=nvcc CPPFLAGS="-x cu -DBICGSTAB"
 make
 ```
 by default the `WilsonExpClover` action and the `MixedPrecisionRBPrecCG` solver are used. These defaults can be altered by specifying `CPPFLAGS` as indicated above. For now the Möbius DWF fermion action and the `MixedPrecisionRBPrecBiCGSTAB` are available as alternatives. (Note that the DWF action only works with the standard CG solver)
