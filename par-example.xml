@@ -25,6 +25,11 @@
       <statDbBase>statDb</statDbBase>
       <statDbPeriodMs>50</statDbPeriodMs>
     </database>
+    <!-- Define the sheduler, options naive and genetic -->
+    <!-- The naive scheduler is much faster for WilsonClover type fermions -->
+    <scheduler>
+      <schedulerType>naive</schedulerType>
+    </scheduler>
     <!-- genetic scheduler parameters -->
     <genetic>
       <!-- population of schedules -->
