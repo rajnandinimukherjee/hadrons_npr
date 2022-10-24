@@ -17,7 +17,7 @@ std::string cleanString(std::string text)
 {
     std::replace(text.begin(), text.end(), '.', 'p');
     std::replace(text.begin(), text.end(), '-', 'n');
-    text.erase(text.find_last_not_of("0") + 2, std::string::npos);
+    text.erase(text.find_last_not_of("0") + 1, std::string::npos);
     return text;
 }
 
