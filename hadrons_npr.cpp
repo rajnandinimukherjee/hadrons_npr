@@ -148,8 +148,11 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    std::ostringstream massStream;
+    massStream.precision(17);
+    massStream << std::fixed << par.action.mass;
 
-    outputFolder += "/m" + cleanString(std::to_string(par.action.mass)) + "/";
+    outputFolder += "/m" + cleanString(massStream.str()) + "/";
     LOG(Debug) << "outputFolder: " << outputFolder << std::endl;
 
     #ifdef BICGSTAB
@@ -317,7 +320,7 @@ int main(int argc, char *argv[])
         double sym_twist = sqrt(delta_p2 * i_mom / 4.0);
         assert(std::abs(p2 - 4 * sym_twist * sym_twist) < 1e-6);
 
-        std::stringstream sstream;
+        std::ostringstream sstream;
 
         // 1 1 0 0 type momenta
         sstream << std::setprecision(17) << twist << "_" << twist << "_0.0_0.0";
