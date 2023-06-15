@@ -25,12 +25,6 @@ AC_ARG_WITH([grid],
     [PATH="$with_grid/bin$PATH_SEPARATOR$PATH"]
     [CXXFLAGS="$CXXFLAGS -I$with_grid/include"]
     [LDFLAGS="$LDFLAGS -L$with_grid/lib"])
-CXXFLAGS="$CXXFLAGS `hadrons-config --cxxflags`"
-LDFLAGS="$LDFLAGS `hadrons-config --ldflags`"
-CXXFLAGS="$AM_CXXFLAGS $CXXFLAGS"
-LDFLAGS="$AM_LDFLAGS $LDFLAGS"
-LIBS=" -lHadrons $LIBS `hadrons-config --libs`"
-
 
 # Checks for programs.
 AC_PROG_CXX
@@ -38,6 +32,13 @@ AC_PROG_CC
 AC_PROG_RANLIB
 AM_PROG_AR
 AC_LANG([C++])
+
+CXXFLAGS="$CXXFLAGS `hadrons-config --cxxflags`"
+LDFLAGS="$LDFLAGS `hadrons-config --ldflags`"
+CXXFLAGS="$AM_CXXFLAGS $CXXFLAGS"
+LDFLAGS="$AM_LDFLAGS $LDFLAGS"
+LIBS=" -lHadrons $LIBS `hadrons-config --libs`"
+
 
 AC_MSG_CHECKING([that a minimal Grid/Hadrons program compiles]);
 AC_LINK_IFELSE(
