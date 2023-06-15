@@ -9,13 +9,6 @@ AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
-# Checks for programs.
-AC_PROG_CXX
-AC_PROG_CC
-AC_PROG_RANLIB
-AM_PROG_AR
-AC_LANG([C++])
-
 AC_ARG_WITH([hadrons],
     [AS_HELP_STRING([--with-hadrons=<prefix>],
     [try this for a non-standard install prefix of Hadrons])],
@@ -37,6 +30,14 @@ LDFLAGS="$LDFLAGS `hadrons-config --ldflags`"
 CXXFLAGS="$AM_CXXFLAGS $CXXFLAGS"
 LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 LIBS=" -lHadrons $LIBS `hadrons-config --libs`"
+
+
+# Checks for programs.
+AC_PROG_CXX
+AC_PROG_CC
+AC_PROG_RANLIB
+AM_PROG_AR
+AC_LANG([C++])
 
 AC_MSG_CHECKING([that a minimal Grid/Hadrons program compiles]);
 AC_LINK_IFELSE(
