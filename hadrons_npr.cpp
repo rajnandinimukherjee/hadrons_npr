@@ -281,15 +281,14 @@ int main(int argc, char *argv[])
     }
 
     // Prepare stochastic electromagnetic field and sequential insertion for the QED case
-    MGauge::StochEm::Par stochEmPar;
+    MGauge::StochasticQedL::Par stochasticQedLPar;
     MSource::SeqAslash::Par seqAslashPar;
     MSource::SeqGamma::Par seqGammaPar;
     if (QED)
     {
-        stochEmPar.gauge = PhotonR::Gauge::feynman;
-        stochEmPar.zmScheme = PhotonR::ZmScheme::qedL;
-        stochEmPar.improvement = "";
-        application.createModule<MGauge::StochEm>("StochEm", stochEmPar);
+        stochasticQedLPar.gauge = PhotonR::Gauge::feynman;
+        stochasticQedLPar.improvement = "";
+        application.createModule<MGauge::StochasticQedL>("StochEm", stochasticQedLPar);
 
         seqAslashPar.tA = 0;
         seqAslashPar.tB = Nt;
