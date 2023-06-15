@@ -64,6 +64,7 @@ AC_LINK_IFELSE(
     [AC_MSG_RESULT([no])]
     [AC_MSG_ERROR([Could not compile a minimal Hadrons program])])
 
+AC_SUBST([CXXLD])
 AC_SUBST([AM_CXXFLAGS])
 AC_SUBST([AM_LDFLAGS])
 AC_CONFIG_FILES([Makefile])
