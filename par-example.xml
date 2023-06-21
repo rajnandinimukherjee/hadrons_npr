@@ -27,7 +27,7 @@
     </database>
     <!-- Define the scheduler, options naive and genetic -->
     <scheduler>
-      <schedulerType>genetic</schedulerType>
+      <schedulerType>naive</schedulerType>
     </scheduler>
     <!-- genetic scheduler parameters -->
     <genetic>
