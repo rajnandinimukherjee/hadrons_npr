@@ -312,11 +312,11 @@ int main(int argc, char *argv[])
         LOG(Debug) << momentumFolder << std::endl;
 
         // Calculate twist that fulfills 2*twist^2=p^2
-        double twist = sqrt(delta_p2 * i_mom / 2.0);
+        double twist = sqrt(p2 / 2.0);
         assert(std::abs(p2 - 2 * twist * twist) < 1e-6);
 
         // Calculate twist that fulfills 4*twist^2=p^2
-        double sym_twist = sqrt(delta_p2 * i_mom / 4.0);
+        double sym_twist = sqrt(p2 / 4.0);
         assert(std::abs(p2 - 4 * sym_twist * sym_twist) < 1e-6);
 
         std::ostringstream sstream;
