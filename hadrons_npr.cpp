@@ -41,7 +41,9 @@ namespace NprInputs
     {
     public:
         GRID_SERIALIZABLE_CLASS_MEMBERS(NprOptions,
-                                        double,     delta_p2,
+                                        double,     min_ap2,
+                                        double,     max_ap2,
+                                        double,     delta_ap2,
                                         bool,       QED,
                                         bool,       fourquark,
                                         std::string, outputFolder);
@@ -137,7 +139,9 @@ int main(int argc, char *argv[])
     double ToverL = 1.0 * Nt / Nl;
     LOG(Debug) << "T/L=" << ToverL << std::endl;
 
-    double delta_p2 = par.nprOptions.delta_p2;
+    double min_ap2 = par.nprOptions.min_ap2;
+    double max_ap2 = par.nprOptions.max_ap2;
+    double delta_ap2 = par.nprOptions.delta_ap2;
     bool QED = par.nprOptions.QED;
     bool fourquark = par.nprOptions.fourquark;
     std::string outputFolder = par.nprOptions.outputFolder;
@@ -302,10 +306,10 @@ int main(int argc, char *argv[])
     }
 
     // Create modules that compute propagators and vertices on the three twist geometry trajectories
-    for (int i_mom=std::max(1, int(1.0 / delta_p2)); i_mom<=int(Nl / delta_p2); i_mom++)
+    for (int i_mom=0; i_mom<=int((max_ap2-min_ap2)/delta_ap2); i_mom++)
     {
 
-        double p2 = delta_p2 * i_mom;
+        double p2 = (min_ap2+i_mom*delta_ap2)*Nl*Nl/4/M_PI/M_PI; // Convert to units of L^2/(2pi)^2
         std::string momentumFolder = outputFolder + "p2_" + cleanString(std::to_string(p2)) + "/";
 
         LOG(Debug) << "p2 = " << p2 << std::endl;
