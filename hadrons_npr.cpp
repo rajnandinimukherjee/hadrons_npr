@@ -178,6 +178,10 @@ int main(int argc, char *argv[])
     {
         application.createModule<MGauge::Unit>("gauge");
     }
+    else if (par.gaugeField.gaugeFieldType == "Random")
+    {
+        application.createModule<MGauge::Random>("gauge");
+    }
     else if (par.gaugeField.gaugeFieldType == "Nersc")
     {
         MIO::LoadNersc::Par gaugePar;
