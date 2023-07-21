@@ -280,8 +280,8 @@ int main(int argc, char *argv[])
         freeActionFPar.boundary = freeActionDPar.boundary;
         freeActionFPar.twist = freeActionDPar.twist;
         #ifdef MOBIUS
-            freeActionFPar.Ls = freeActionDPar.Ls;
-            freeActionFPar.M5 = freeActionDPar.M5;
+            freeActionFPar.Ls = 8;
+            freeActionFPar.M5 = 1.0;
             freeActionFPar.b = freeActionDPar.b;
             freeActionFPar.c = freeActionDPar.c;
         #else // WilsonExpClover
