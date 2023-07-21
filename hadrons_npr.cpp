@@ -329,14 +329,14 @@ int main(int argc, char *argv[])
     {
         FourQuarkFullyConnectedPar.pIn = momentumPar.mom;
         FourQuarkFullyConnectedPar.pOut = momentumPar.mom;
-        FourQuarkFullyConnectedPar.gamma_basis = "diagonal_va";
+        FourQuarkFullyConnectedPar.gamma_basis = "va_av";
     }
     MNPR::FourFermionFullyConnected::Par FourFermionFullyConnectedPar;
     if ((QED) && (fourquark))
     {
         FourFermionFullyConnectedPar.pIn = momentumPar.mom;
         FourFermionFullyConnectedPar.pOut = momentumPar.mom;
-        FourFermionFullyConnectedPar.gamma_basis = "diagonal_va";
+        FourFermionFullyConnectedPar.gamma_basis = "va_av";
     }
 
     // Prepare stochastic electromagnetic field and sequential insertion for the QED case
