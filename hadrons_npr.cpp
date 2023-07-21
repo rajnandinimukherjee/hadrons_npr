@@ -204,6 +204,14 @@ int main(int argc, char *argv[])
     gaugeFPar.field = "gauge";
     application.createModule<MUtilities::GaugeSinglePrecisionCast>("gauge_F", gaugeFPar);
 
+    if ((QED) && (fourquark))
+    {
+        // Free field required for lepton propagtors.
+        application.createModule<MGauge::Unit>("free_field");
+        gaugeFPar.field = "free_field";
+        application.createModule<MUtilities::GaugeSinglePrecisionCast>("free_field_F", gaugeFPar);
+    }
+
     // Set base parameters for fermion action
     FermionAction::Par actionDPar;
     actionDPar.gauge = "gauge";
@@ -220,11 +228,6 @@ int main(int argc, char *argv[])
         actionDPar.csw_r = par.action.csw;
         actionDPar.csw_t = par.action.csw;
     #endif
-
-    if (QED)
-    {
-        application.createModule<FermionAction>("action", actionDPar);
-    }
 
     FermionActionF::Par actionFPar;
     actionFPar.gauge = "gauge_F";
@@ -244,7 +247,44 @@ int main(int argc, char *argv[])
 
     if (QED)
     {
+        application.createModule<FermionAction>("action", actionDPar);
         application.createModule<FermionActionF>("action_F", actionFPar);
+    }
+    if ((QED) && (fourquark))
+    {
+        // Set base parameters for free fermion action
+        // TODO: Is it correct to set the mass to zero and keep Ls and M5?
+        FermionAction::Par freeActionDPar;
+        freeActionDPar.gauge = "free_field";
+        freeActionDPar.mass = 0.0;
+        freeActionDPar.boundary = "1.0 1.0 1.0 1.0";
+        freeActionDPar.twist = "0 0 0 0";
+        #ifdef MOBIUS
+            freeActionDPar.Ls = par.action.Ls;
+            freeActionDPar.M5 = par.action.M5;
+            freeActionDPar.b = 1.5;
+            freeActionDPar.c = 0.5;
+        #else // WilsonExpClover
+            freeActionDPar.cF = 1.0;
+            freeActionDPar.csw_r = 1.0;
+            freeActionDPar.csw_t = 1.0;
+        #endif
+
+        FermionActionF::Par freeActionFPar;
+        freeActionFPar.gauge = "free_field_F";
+        freeActionFPar.mass = freeActionDPar.mass;
+        freeActionFPar.boundary = freeActionDPar.boundary;
+        freeActionFPar.twist = freeActionDPar.twist;
+        #ifdef MOBIUS
+            freeActionFPar.Ls = freeActionDPar.Ls;
+            freeActionFPar.M5 = freeActionDPar.M5;
+            freeActionFPar.b = freeActionDPar.b;
+            freeActionFPar.c = freeActionDPar.c;
+        #else // WilsonExpClover
+            freeActionFPar.cF = freeActionDPar.cF;
+            freeActionFPar.csw_r = freeActionDPar.csw_r;
+            freeActionFPar.csw_t = freeActionDPar.csw_t;
+        #endif
     }
 
     // Set base parameters for solver
