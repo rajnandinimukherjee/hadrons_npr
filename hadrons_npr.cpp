@@ -156,12 +156,6 @@ int main(int argc, char *argv[])
     bool fourquark = par.nprOptions.fourquark;
     std::string outputFolder = par.nprOptions.outputFolder;
 
-    if ((QED) && (fourquark))
-    {
-        LOG(Error) << "QED fourquark operators are not implemented." << std::endl;
-        exit(EXIT_FAILURE);
-    }
-
     std::ostringstream massStream;
     massStream.precision(17);
     massStream << std::fixed << par.action.mass;
@@ -260,11 +254,12 @@ int main(int argc, char *argv[])
         application.createModule<FermionAction>("action", actionDPar);
         application.createModule<FermionActionF>("action_F", actionFPar);
     }
+    FermionAction::Par freeActionDPar;
+    FermionActionF::Par freeActionFPar;
     if ((QED) && (fourquark))
     {
         // Set base parameters for free fermion action
         // TODO: Is it correct to set the mass to zero and keep Ls and M5?
-        FermionAction::Par freeActionDPar;
         freeActionDPar.gauge = "free_field";
         freeActionDPar.mass = 0.0;
         freeActionDPar.boundary = "1.0 1.0 1.0 1.0";
@@ -280,7 +275,6 @@ int main(int argc, char *argv[])
             freeActionDPar.csw_t = 1.0;
         #endif
 
-        FermionActionF::Par freeActionFPar;
         freeActionFPar.gauge = "free_field_F";
         freeActionFPar.mass = freeActionDPar.mass;
         freeActionFPar.boundary = freeActionDPar.boundary;
@@ -508,94 +502,6 @@ int main(int argc, char *argv[])
                 application.setResultMetadata(externalLegName_S, "externalLeg", elEntry);
             }
 
-            if ((QED) && (fourquark))
-            {
-                // Construct action and solver names
-                std::string twisted_action_name = "free_action_twisted_" + name;
-                std::string twisted_action_nameF = twisted_action_name + "F";
-                std::string twisted_solver_name = "free_cg_twisted_" + name;
-
-                // Create action modules for given twist
-                freeActionDPar.twist = freeActionFPar.twist = underscoreToSpace(name);
-                application.createModule<FermionAction>(twisted_action_name, freeActionDPar);
-                application.createModule<FermionActionF>(twisted_action_nameF, freeActionFPar);
-
-                // Create corresponding solver module
-                solverPar.outerAction = twisted_action_name;
-                solverPar.innerAction = twisted_action_nameF;
-                application.createModule<MixedPrecisionSolver>(twisted_solver_name, solverPar);
-
-                // Create propagator module
-                std::string leptonPropagatorName = "L_0_" + name;
-                quarkPar.source = "zero_momentum_source";
-                quarkPar.solver = twisted_solver_name; // Use solver with twisted action
-                application.createModule<MFermion::GaugeProp>(leptonPropagatorName, quarkPar);
-
-                // Compute and save ExternalLeg to disk
-                std::string externalLegName = "LeptonExternalLeg_0_" + name;
-                externalLegPar.qIn = leptonPropagatorName;
-                externalLegPar.output = momentumFolder + externalLegName;
-                application.createModule<MNPR::ExternalLeg>(externalLegName, externalLegPar);
-
-                elEntry.qIn = externalLegPar.qIn;
-                elEntry.momentum = actionDPar.twist;
-                elEntry.photon_insertions = "0";
-                application.setResultMetadata(externalLegName, "externalLeg", elEntry);
-
-                std::string leptonPropagatorName_1 = "L_1_" + name;
-                std::string leptonPropagatorName_2 = "L_2_" + name;
-                std::string leptonPropagatorName_S = "L_S_" + name;
-
-                // Prepare and calculate propagator with one photon insertion.
-                std::string seqAslashName_1 = "LeptonSeqAslash_1_" + name;
-                seqAslashPar.q = leptonPropagatorName;
-                application.createModule<MSource::SeqAslash>(seqAslashName_1, seqAslashPar);
-
-                quarkPar.source = seqAslashName_1;
-                quarkPar.solver = "cg"; // Use untwisted solver
-                application.createModule<MFermion::GaugeProp>(leptonPropagatorName_1, quarkPar);
-
-                // Prepare and calculate propagator with two photon insertions.
-                std::string seqAslashName_2 = "LeptonSeqAslash_2_" + name;
-                seqAslashPar.q = leptonPropagatorName_1;
-                application.createModule<MSource::SeqAslash>(seqAslashName_2, seqAslashPar);
-
-                quarkPar.source = seqAslashName_2;
-                quarkPar.solver = "cg"; // Use untwisted solver
-                application.createModule<MFermion::GaugeProp>(leptonPropagatorName_2, quarkPar);
-
-                // Compute and save ExternalLeg with two photon insertions to disk
-                std::string externalLegName_2 = "LeptonExternalLeg_2_" + name;
-                externalLegPar.qIn = leptonPropagatorName_2;
-                externalLegPar.output = momentumFolder + externalLegName_2;
-                application.createModule<MNPR::ExternalLeg>(externalLegName_2, externalLegPar);
-
-                elEntry.qIn = externalLegPar.qIn;
-                elEntry.momentum = actionDPar.twist;
-                elEntry.photon_insertions = "2";
-                application.setResultMetadata(externalLegName_2, "externalLeg", elEntry);
-
-                // Prepare and calculate propagator with one scalar insertion.
-                std::string seqGammaName = "LeptonSeqGamma_" + name;
-                seqGammaPar.q = leptonPropagatorName;
-                application.createModule<MSource::SeqGamma>(seqGammaName, seqGammaPar);
-
-                quarkPar.source = seqGammaName;
-                quarkPar.solver = "cg"; // Use untwisted solver
-                application.createModule<MFermion::GaugeProp>(leptonPropagatorName_S, quarkPar);
-
-                // Compute and save ExternalLeg with one scalar insertion to disk
-                std::string externalLegName_S = "LeptonExternalLeg_S_" + name;
-                externalLegPar.qIn = leptonPropagatorName_S;
-                externalLegPar.output = momentumFolder + externalLegName_S;
-                application.createModule<MNPR::ExternalLeg>(externalLegName_S, externalLegPar);
-
-                elEntry.qIn = externalLegPar.qIn;
-                elEntry.momentum = actionDPar.twist;
-                elEntry.photon_insertions = "S";
-                application.setResultMetadata(externalLegName_S, "externalLeg", elEntry);
-            }
-
             // Compute and save Bilinear to disk
             std::string bilinearName = "MOM_Bilinear_00_" + name + "_" + name;
             BilinearPar.qIn = propagatorName;
@@ -675,8 +581,94 @@ int main(int argc, char *argv[])
             {
                 if (QED)
                 {
+                    // Construct action and solver names
+                    std::string twisted_action_name = "free_action_twisted_" + name;
+                    std::string twisted_action_nameF = twisted_action_name + "F";
+                    std::string twisted_solver_name = "free_cg_twisted_" + name;
+
+                    // Create action modules for given twist
+                    freeActionDPar.twist = freeActionFPar.twist = underscoreToSpace(name);
+                    application.createModule<FermionAction>(twisted_action_name, freeActionDPar);
+                    application.createModule<FermionActionF>(twisted_action_nameF, freeActionFPar);
+
+                    // Create corresponding solver module
+                    solverPar.outerAction = twisted_action_name;
+                    solverPar.innerAction = twisted_action_nameF;
+                    application.createModule<MixedPrecisionSolver>(twisted_solver_name, solverPar);
+
+                    // Create propagator module
+                    std::string leptonPropagatorName = "L_0_" + name;
+                    quarkPar.source = "zero_momentum_source";
+                    quarkPar.solver = twisted_solver_name; // Use solver with twisted action
+                    application.createModule<MFermion::GaugeProp>(leptonPropagatorName, quarkPar);
+
+                    // Compute and save ExternalLeg to disk
+                    std::string externalLegName = "LeptonExternalLeg_0_" + name;
+                    externalLegPar.qIn = leptonPropagatorName;
+                    externalLegPar.output = momentumFolder + externalLegName;
+                    application.createModule<MNPR::ExternalLeg>(externalLegName, externalLegPar);
+
+                    elEntry.qIn = externalLegPar.qIn;
+                    elEntry.momentum = actionDPar.twist;
+                    elEntry.photon_insertions = "0";
+                    application.setResultMetadata(externalLegName, "externalLeg", elEntry);
+
+                    std::string leptonPropagatorName_1 = "L_1_" + name;
+                    std::string leptonPropagatorName_2 = "L_2_" + name;
+                    std::string leptonPropagatorName_S = "L_S_" + name;
+
+                    // Prepare and calculate propagator with one photon insertion.
+                    std::string seqAslashName_1 = "LeptonSeqAslash_1_" + name;
+                    seqAslashPar.q = leptonPropagatorName;
+                    application.createModule<MSource::SeqAslash>(seqAslashName_1, seqAslashPar);
+
+                    quarkPar.source = seqAslashName_1;
+                    quarkPar.solver = "cg"; // Use untwisted solver
+                    application.createModule<MFermion::GaugeProp>(leptonPropagatorName_1, quarkPar);
+
+                    // Prepare and calculate propagator with two photon insertions.
+                    std::string seqAslashName_2 = "LeptonSeqAslash_2_" + name;
+                    seqAslashPar.q = leptonPropagatorName_1;
+                    application.createModule<MSource::SeqAslash>(seqAslashName_2, seqAslashPar);
+
+                    quarkPar.source = seqAslashName_2;
+                    quarkPar.solver = "cg"; // Use untwisted solver
+                    application.createModule<MFermion::GaugeProp>(leptonPropagatorName_2, quarkPar);
+
+                    // Compute and save ExternalLeg with two photon insertions to disk
+                    std::string externalLegName_2 = "LeptonExternalLeg_2_" + name;
+                    externalLegPar.qIn = leptonPropagatorName_2;
+                    externalLegPar.output = momentumFolder + externalLegName_2;
+                    application.createModule<MNPR::ExternalLeg>(externalLegName_2, externalLegPar);
+
+                    elEntry.qIn = externalLegPar.qIn;
+                    elEntry.momentum = actionDPar.twist;
+                    elEntry.photon_insertions = "2";
+                    application.setResultMetadata(externalLegName_2, "externalLeg", elEntry);
+
+                    // Prepare and calculate propagator with one scalar insertion.
+                    std::string seqGammaName = "LeptonSeqGamma_" + name;
+                    seqGammaPar.q = leptonPropagatorName;
+                    application.createModule<MSource::SeqGamma>(seqGammaName, seqGammaPar);
+
+                    quarkPar.source = seqGammaName;
+                    quarkPar.solver = "cg"; // Use untwisted solver
+                    application.createModule<MFermion::GaugeProp>(leptonPropagatorName_S, quarkPar);
+
+                    // Compute and save ExternalLeg with one scalar insertion to disk
+                    std::string externalLegName_S = "LeptonExternalLeg_S_" + name;
+                    externalLegPar.qIn = leptonPropagatorName_S;
+                    externalLegPar.output = momentumFolder + externalLegName_S;
+                    application.createModule<MNPR::ExternalLeg>(externalLegName_S, externalLegPar);
+
+                    elEntry.qIn = externalLegPar.qIn;
+                    elEntry.momentum = actionDPar.twist;
+                    elEntry.photon_insertions = "S";
+                    application.setResultMetadata(externalLegName_S, "externalLeg", elEntry);
+
+                    std::string FourFermionFullyConnectedName;
                     // Compute and save FourFermionFullyConnected to disk
-                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_0000_" + name + "_" + name;
+                    FourFermionFullyConnectedName = "MOM_FourFermion_0000_" + name + "_" + name;
                     FourFermionFullyConnectedPar.qIn = propagatorName;
                     FourFermionFullyConnectedPar.qOut = propagatorName;
                     FourFermionFullyConnectedPar.lIn = leptonPropagatorName;
@@ -692,7 +684,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_1100 to disk
-                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_1100_" + name + "_" + name;
+                    FourFermionFullyConnectedName = "MOM_FourFermion_1100_" + name + "_" + name;
                     FourFermionFullyConnectedPar.qIn = propagatorName_1;
                     FourFermionFullyConnectedPar.qOut = propagatorName_1;
                     FourFermionFullyConnectedPar.lIn = leptonPropagatorName;
@@ -708,7 +700,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_2000 to disk
-                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_2000_" + name + "_" + name;
+                    FourFermionFullyConnectedName = "MOM_FourFermion_2000_" + name + "_" + name;
                     FourFermionFullyConnectedPar.qIn = propagatorName_2;
                     FourFermionFullyConnectedPar.qOut = propagatorName;
                     FourFermionFullyConnectedPar.lIn = leptonPropagatorName;
@@ -724,7 +716,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_0200 to disk
-                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_0200_" + name + "_" + name;
+                    FourFermionFullyConnectedName = "MOM_FourFermion_0200_" + name + "_" + name;
                     FourFermionFullyConnectedPar.qIn = propagatorName;
                     FourFermionFullyConnectedPar.qOut = propagatorName_2;
                     FourFermionFullyConnectedPar.lIn = leptonPropagatorName;
@@ -740,7 +732,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_S000 to disk
-                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_S000_" + name + "_" + name;
+                    FourFermionFullyConnectedName = "MOM_FourFermion_S000_" + name + "_" + name;
                     FourFermionFullyConnectedPar.qIn = propagatorName_S;
                     FourFermionFullyConnectedPar.qOut = propagatorName;
                     FourFermionFullyConnectedPar.lIn = leptonPropagatorName;
@@ -756,7 +748,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_0S00 to disk
-                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_0S00_" + name + "_" + name;
+                    FourFermionFullyConnectedName = "MOM_FourFermion_0S00_" + name + "_" + name;
                     FourFermionFullyConnectedPar.qIn = propagatorName;
                     FourFermionFullyConnectedPar.qOut = propagatorName_S;
                     FourFermionFullyConnectedPar.lIn = leptonPropagatorName;
@@ -772,7 +764,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_1010 to disk
-                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_1010_" + name + "_" + name;
+                    FourFermionFullyConnectedName = "MOM_FourFermion_1010_" + name + "_" + name;
                     FourFermionFullyConnectedPar.qIn = propagatorName_1;
                     FourFermionFullyConnectedPar.qOut = propagatorName;
                     FourFermionFullyConnectedPar.lIn = leptonPropagatorName_1;
@@ -788,7 +780,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_0110 to disk
-                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_0110_" + name + "_" + name;
+                    FourFermionFullyConnectedName = "MOM_FourFermion_0110_" + name + "_" + name;
                     FourFermionFullyConnectedPar.qIn = propagatorName;
                     FourFermionFullyConnectedPar.qOut = propagatorName_1;
                     FourFermionFullyConnectedPar.lIn = leptonPropagatorName_1;
@@ -804,7 +796,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_0020 to disk
-                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_0020_" + name + "_" + name;
+                    FourFermionFullyConnectedName = "MOM_FourFermion_0020_" + name + "_" + name;
                     FourFermionFullyConnectedPar.qIn = propagatorName;
                     FourFermionFullyConnectedPar.qOut = propagatorName;
                     FourFermionFullyConnectedPar.lIn = leptonPropagatorName_2;
@@ -820,7 +812,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_00S0 to disk
-                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_00S0_" + name + "_" + name;
+                    FourFermionFullyConnectedName = "MOM_FourFermion_00S0_" + name + "_" + name;
                     FourFermionFullyConnectedPar.qIn = propagatorName;
                     FourFermionFullyConnectedPar.qOut = propagatorName;
                     FourFermionFullyConnectedPar.lIn = leptonPropagatorName_S;
@@ -945,8 +937,9 @@ int main(int argc, char *argv[])
             {
                 if (QED)
                 {
+                    std::string FourFermionFullyConnectedName;
                     // Compute and save FourFermionFullyConnected to disk
-                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_0000_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedName = "SMOM_FourFermion_0000_" + name_in + "_" + name_out;
                     FourFermionFullyConnectedPar.qIn = "Q_0_" + name_in;
                     FourFermionFullyConnectedPar.qOut = "Q_0_" + name_out;
                     FourFermionFullyConnectedPar.lIn = "L_0_" + name_in;
@@ -962,7 +955,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_1100 to disk
-                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_1100_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedName = "SMOM_FourFermion_1100_" + name_in + "_" + name_out;
                     FourFermionFullyConnectedPar.qIn = "Q_1_" + name_in;
                     FourFermionFullyConnectedPar.qOut = "Q_1_" + name_out;
                     FourFermionFullyConnectedPar.lIn = "L_0_" + name_in;
@@ -978,7 +971,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_2000 to disk
-                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_2000_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedName = "SMOM_FourFermion_2000_" + name_in + "_" + name_out;
                     FourFermionFullyConnectedPar.qIn = "Q_2_" + name_in;
                     FourFermionFullyConnectedPar.qOut = "Q_0_" + name_out;
                     FourFermionFullyConnectedPar.lIn = "L_0_" + name_in;
@@ -994,7 +987,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_0200 to disk
-                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_0200_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedName = "SMOM_FourFermion_0200_" + name_in + "_" + name_out;
                     FourFermionFullyConnectedPar.qIn = "Q_0_" + name_in;
                     FourFermionFullyConnectedPar.qOut = "Q_2_" + name_out;
                     FourFermionFullyConnectedPar.lIn = "L_0_" + name_in;
@@ -1010,7 +1003,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_S000 to disk
-                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_S000_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedName = "SMOM_FourFermion_S000_" + name_in + "_" + name_out;
                     FourFermionFullyConnectedPar.qIn = "Q_S_" + name_in;
                     FourFermionFullyConnectedPar.qOut = "Q_0_" + name_out;
                     FourFermionFullyConnectedPar.lIn = "L_0_" + name_in;
@@ -1026,7 +1019,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_0S00 to disk
-                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_0S00_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedName = "SMOM_FourFermion_0S00_" + name_in + "_" + name_out;
                     FourFermionFullyConnectedPar.qIn = "Q_0_" + name_in;
                     FourFermionFullyConnectedPar.qOut = "Q_S_" + name_out;
                     FourFermionFullyConnectedPar.lIn = "L_0_" + name_in;
@@ -1042,7 +1035,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_1010 to disk
-                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_1010_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedName = "SMOM_FourFermion_1010_" + name_in + "_" + name_out;
                     FourFermionFullyConnectedPar.qIn = "Q_1_" + name_in;
                     FourFermionFullyConnectedPar.qOut = "Q_0_" + name_out;
                     FourFermionFullyConnectedPar.lIn = "L_1_" + name_in;
@@ -1058,7 +1051,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_0110 to disk
-                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_0110_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedName = "SMOM_FourFermion_0110_" + name_in + "_" + name_out;
                     FourFermionFullyConnectedPar.qIn = "Q_0_" + name_in;
                     FourFermionFullyConnectedPar.qOut = "Q_1_" + name_out;
                     FourFermionFullyConnectedPar.lIn = "L_1_" + name_in;
@@ -1074,7 +1067,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_0020 to disk
-                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_0020_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedName = "SMOM_FourFermion_0020_" + name_in + "_" + name_out;
                     FourFermionFullyConnectedPar.qIn = "Q_0_" + name_in;
                     FourFermionFullyConnectedPar.qOut = "Q_0_" + name_out;
                     FourFermionFullyConnectedPar.lIn = "L_2_" + name_in;
@@ -1090,7 +1083,7 @@ int main(int argc, char *argv[])
                     application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
 
                     // Compute and save FourFermionFullyConnected_00S0 to disk
-                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_00S0_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedName = "SMOM_FourFermion_00S0_" + name_in + "_" + name_out;
                     FourFermionFullyConnectedPar.qIn = "Q_0_" + name_in;
                     FourFermionFullyConnectedPar.qOut = "Q_0_" + name_out;
                     FourFermionFullyConnectedPar.lIn = "L_S_" + name_in;
