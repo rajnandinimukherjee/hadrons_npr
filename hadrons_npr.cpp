@@ -491,6 +491,94 @@ int main(int argc, char *argv[])
                 application.setResultMetadata(externalLegName_S, "externalLeg", elEntry);
             }
 
+            if ((QED) && (fourquark))
+            {
+                // Construct action and solver names
+                std::string twisted_action_name = "free_action_twisted_" + name;
+                std::string twisted_action_nameF = twisted_action_name + "F";
+                std::string twisted_solver_name = "free_cg_twisted_" + name;
+
+                // Create action modules for given twist
+                freeActionDPar.twist = freeActionFPar.twist = underscoreToSpace(name);
+                application.createModule<FermionAction>(twisted_action_name, freeActionDPar);
+                application.createModule<FermionActionF>(twisted_action_nameF, freeActionFPar);
+
+                // Create corresponding solver module
+                solverPar.outerAction = twisted_action_name;
+                solverPar.innerAction = twisted_action_nameF;
+                application.createModule<MixedPrecisionSolver>(twisted_solver_name, solverPar);
+
+                // Create propagator module
+                std::string propagatorName = "L_0_" + name;
+                quarkPar.source = "zero_momentum_source";
+                quarkPar.solver = twisted_solver_name; // Use solver with twisted action
+                application.createModule<MFermion::GaugeProp>(propagatorName, quarkPar);
+
+                // Compute and save ExternalLeg to disk
+                std::string externalLegName = "LeptonExternalLeg_0_" + name;
+                externalLegPar.qIn = propagatorName;
+                externalLegPar.output = momentumFolder + externalLegName;
+                application.createModule<MNPR::ExternalLeg>(externalLegName, externalLegPar);
+
+                elEntry.qIn = externalLegPar.qIn;
+                elEntry.momentum = actionDPar.twist;
+                elEntry.photon_insertions = "0";
+                application.setResultMetadata(externalLegName, "externalLeg", elEntry);
+
+                std::string propagatorName_1 = "L_1_" + name;
+                std::string propagatorName_2 = "L_2_" + name;
+                std::string propagatorName_S = "L_S_" + name;
+
+                // Prepare and calculate propagator with one photon insertion.
+                std::string seqAslashName_1 = "LeptonSeqAslash_1_" + name;
+                seqAslashPar.q = propagatorName;
+                application.createModule<MSource::SeqAslash>(seqAslashName_1, seqAslashPar);
+
+                quarkPar.source = seqAslashName_1;
+                quarkPar.solver = "cg"; // Use untwisted solver
+                application.createModule<MFermion::GaugeProp>(propagatorName_1, quarkPar);
+
+                // Prepare and calculate propagator with two photon insertions.
+                std::string seqAslashName_2 = "LeptonSeqAslash_2_" + name;
+                seqAslashPar.q = propagatorName_1;
+                application.createModule<MSource::SeqAslash>(seqAslashName_2, seqAslashPar);
+
+                quarkPar.source = seqAslashName_2;
+                quarkPar.solver = "cg"; // Use untwisted solver
+                application.createModule<MFermion::GaugeProp>(propagatorName_2, quarkPar);
+
+                // Compute and save ExternalLeg with two photon insertions to disk
+                std::string externalLegName_2 = "LeptonExternalLeg_2_" + name;
+                externalLegPar.qIn = propagatorName_2;
+                externalLegPar.output = momentumFolder + externalLegName_2;
+                application.createModule<MNPR::ExternalLeg>(externalLegName_2, externalLegPar);
+
+                elEntry.qIn = externalLegPar.qIn;
+                elEntry.momentum = actionDPar.twist;
+                elEntry.photon_insertions = "2";
+                application.setResultMetadata(externalLegName_2, "externalLeg", elEntry);
+
+                // Prepare and calculate propagator with one scalar insertion.
+                std::string seqGammaName = "LeptonSeqGamma_" + name;
+                seqGammaPar.q = propagatorName;
+                application.createModule<MSource::SeqGamma>(seqGammaName, seqGammaPar);
+
+                quarkPar.source = seqGammaName;
+                quarkPar.solver = "cg"; // Use untwisted solver
+                application.createModule<MFermion::GaugeProp>(propagatorName_S, quarkPar);
+
+                // Compute and save ExternalLeg with one scalar insertion to disk
+                std::string externalLegName_S = "LeptonExternalLeg_S_" + name;
+                externalLegPar.qIn = propagatorName_S;
+                externalLegPar.output = momentumFolder + externalLegName_S;
+                application.createModule<MNPR::ExternalLeg>(externalLegName_S, externalLegPar);
+
+                elEntry.qIn = externalLegPar.qIn;
+                elEntry.momentum = actionDPar.twist;
+                elEntry.photon_insertions = "S";
+                application.setResultMetadata(externalLegName_S, "externalLeg", elEntry);
+            }
+
             // Compute and save Bilinear to disk
             std::string bilinearName = "MOM_Bilinear_00_" + name + "_" + name;
             BilinearPar.qIn = propagatorName;
