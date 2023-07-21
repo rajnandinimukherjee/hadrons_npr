@@ -35,6 +35,15 @@ struct VertexEntry: public SqlEntry
                        SqlNotNull<std::string>, photon_insertions);
 };
 
+struct FourFermionEntry: public SqlEntry
+{
+    HADRONS_SQL_FIELDS(SqlNotNull<std::string>, qIn,
+                       SqlNotNull<std::string>, qOut,
+                       SqlNotNull<std::string>, lIn,
+                       SqlNotNull<std::string>, lOut,
+                       SqlNotNull<std::string>, photon_insertions);
+};
+
 namespace NprInputs
 {
     class NprOptions : Serializable
@@ -111,6 +120,7 @@ int main(int argc, char *argv[])
 
     ExternalLegEntry       elEntry;
     VertexEntry            vertexEntry;
+    FourFermionEntry       fourFermionEntry;
 
     // read parameters from xml file
     {
@@ -327,6 +337,13 @@ int main(int argc, char *argv[])
         FourQuarkFullyConnectedPar.pOut = momentumPar.mom;
         FourQuarkFullyConnectedPar.gamma_basis = "diagonal_va";
     }
+    MNPR::FourFermionFullyConnected::Par FourFermionFullyConnectedPar;
+    if ((QED) && (fourquark))
+    {
+        FourFermionFullyConnectedPar.pIn = momentumPar.mom;
+        FourFermionFullyConnectedPar.pOut = momentumPar.mom;
+        FourFermionFullyConnectedPar.gamma_basis = "diagonal_va";
+    }
 
     // Prepare stochastic electromagnetic field and sequential insertion for the QED case
     MGauge::StochasticQedL::Par stochasticQedLPar;
@@ -509,14 +526,14 @@ int main(int argc, char *argv[])
                 application.createModule<MixedPrecisionSolver>(twisted_solver_name, solverPar);
 
                 // Create propagator module
-                std::string propagatorName = "L_0_" + name;
+                std::string leptonPropagatorName = "L_0_" + name;
                 quarkPar.source = "zero_momentum_source";
                 quarkPar.solver = twisted_solver_name; // Use solver with twisted action
-                application.createModule<MFermion::GaugeProp>(propagatorName, quarkPar);
+                application.createModule<MFermion::GaugeProp>(leptonPropagatorName, quarkPar);
 
                 // Compute and save ExternalLeg to disk
                 std::string externalLegName = "LeptonExternalLeg_0_" + name;
-                externalLegPar.qIn = propagatorName;
+                externalLegPar.qIn = leptonPropagatorName;
                 externalLegPar.output = momentumFolder + externalLegName;
                 application.createModule<MNPR::ExternalLeg>(externalLegName, externalLegPar);
 
@@ -525,31 +542,31 @@ int main(int argc, char *argv[])
                 elEntry.photon_insertions = "0";
                 application.setResultMetadata(externalLegName, "externalLeg", elEntry);
 
-                std::string propagatorName_1 = "L_1_" + name;
-                std::string propagatorName_2 = "L_2_" + name;
-                std::string propagatorName_S = "L_S_" + name;
+                std::string leptonPropagatorName_1 = "L_1_" + name;
+                std::string leptonPropagatorName_2 = "L_2_" + name;
+                std::string leptonPropagatorName_S = "L_S_" + name;
 
                 // Prepare and calculate propagator with one photon insertion.
                 std::string seqAslashName_1 = "LeptonSeqAslash_1_" + name;
-                seqAslashPar.q = propagatorName;
+                seqAslashPar.q = leptonPropagatorName;
                 application.createModule<MSource::SeqAslash>(seqAslashName_1, seqAslashPar);
 
                 quarkPar.source = seqAslashName_1;
                 quarkPar.solver = "cg"; // Use untwisted solver
-                application.createModule<MFermion::GaugeProp>(propagatorName_1, quarkPar);
+                application.createModule<MFermion::GaugeProp>(leptonPropagatorName_1, quarkPar);
 
                 // Prepare and calculate propagator with two photon insertions.
                 std::string seqAslashName_2 = "LeptonSeqAslash_2_" + name;
-                seqAslashPar.q = propagatorName_1;
+                seqAslashPar.q = leptonPropagatorName_1;
                 application.createModule<MSource::SeqAslash>(seqAslashName_2, seqAslashPar);
 
                 quarkPar.source = seqAslashName_2;
                 quarkPar.solver = "cg"; // Use untwisted solver
-                application.createModule<MFermion::GaugeProp>(propagatorName_2, quarkPar);
+                application.createModule<MFermion::GaugeProp>(leptonPropagatorName_2, quarkPar);
 
                 // Compute and save ExternalLeg with two photon insertions to disk
                 std::string externalLegName_2 = "LeptonExternalLeg_2_" + name;
-                externalLegPar.qIn = propagatorName_2;
+                externalLegPar.qIn = leptonPropagatorName_2;
                 externalLegPar.output = momentumFolder + externalLegName_2;
                 application.createModule<MNPR::ExternalLeg>(externalLegName_2, externalLegPar);
 
@@ -560,16 +577,16 @@ int main(int argc, char *argv[])
 
                 // Prepare and calculate propagator with one scalar insertion.
                 std::string seqGammaName = "LeptonSeqGamma_" + name;
-                seqGammaPar.q = propagatorName;
+                seqGammaPar.q = leptonPropagatorName;
                 application.createModule<MSource::SeqGamma>(seqGammaName, seqGammaPar);
 
                 quarkPar.source = seqGammaName;
                 quarkPar.solver = "cg"; // Use untwisted solver
-                application.createModule<MFermion::GaugeProp>(propagatorName_S, quarkPar);
+                application.createModule<MFermion::GaugeProp>(leptonPropagatorName_S, quarkPar);
 
                 // Compute and save ExternalLeg with one scalar insertion to disk
                 std::string externalLegName_S = "LeptonExternalLeg_S_" + name;
-                externalLegPar.qIn = propagatorName_S;
+                externalLegPar.qIn = leptonPropagatorName_S;
                 externalLegPar.output = momentumFolder + externalLegName_S;
                 application.createModule<MNPR::ExternalLeg>(externalLegName_S, externalLegPar);
 
@@ -656,17 +673,182 @@ int main(int argc, char *argv[])
 
             if (fourquark)
             {
-                // Compute and save FourQuarkFullyConnected to disk
-                std::string FourQuarkFullyConnectedName = "MOM_FourQuark_00_" + name + "_" + name;
-                FourQuarkFullyConnectedPar.qIn = propagatorName;
-                FourQuarkFullyConnectedPar.qOut = propagatorName;
-                FourQuarkFullyConnectedPar.output = momentumFolder + FourQuarkFullyConnectedName;
-                application.createModule<MNPR::FourQuarkFullyConnected>(FourQuarkFullyConnectedName, FourQuarkFullyConnectedPar);
+                if (QED)
+                {
+                    // Compute and save FourFermionFullyConnected to disk
+                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_0000_" + name + "_" + name;
+                    FourFermionFullyConnectedPar.qIn = propagatorName;
+                    FourFermionFullyConnectedPar.qOut = propagatorName;
+                    FourFermionFullyConnectedPar.lIn = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.lOut = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
 
-                vertexEntry.qIn = FourQuarkFullyConnectedPar.qIn;
-                vertexEntry.qOut = FourQuarkFullyConnectedPar.qOut;
-                vertexEntry.photon_insertions = "00";
-                application.setResultMetadata(FourQuarkFullyConnectedName, "fourquark", vertexEntry);
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "0000";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_1100 to disk
+                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_1100_" + name + "_" + name;
+                    FourFermionFullyConnectedPar.qIn = propagatorName_1;
+                    FourFermionFullyConnectedPar.qOut = propagatorName_1;
+                    FourFermionFullyConnectedPar.lIn = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.lOut = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "1100";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_2000 to disk
+                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_2000_" + name + "_" + name;
+                    FourFermionFullyConnectedPar.qIn = propagatorName_2;
+                    FourFermionFullyConnectedPar.qOut = propagatorName;
+                    FourFermionFullyConnectedPar.lIn = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.lOut = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "2000";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_0200 to disk
+                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_0200_" + name + "_" + name;
+                    FourFermionFullyConnectedPar.qIn = propagatorName;
+                    FourFermionFullyConnectedPar.qOut = propagatorName_2;
+                    FourFermionFullyConnectedPar.lIn = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.lOut = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "0200";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_S000 to disk
+                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_S000_" + name + "_" + name;
+                    FourFermionFullyConnectedPar.qIn = propagatorName_S;
+                    FourFermionFullyConnectedPar.qOut = propagatorName;
+                    FourFermionFullyConnectedPar.lIn = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.lOut = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "S000";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_0S00 to disk
+                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_0S00_" + name + "_" + name;
+                    FourFermionFullyConnectedPar.qIn = propagatorName;
+                    FourFermionFullyConnectedPar.qOut = propagatorName_S;
+                    FourFermionFullyConnectedPar.lIn = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.lOut = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "0S00";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_1010 to disk
+                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_1010_" + name + "_" + name;
+                    FourFermionFullyConnectedPar.qIn = propagatorName_1;
+                    FourFermionFullyConnectedPar.qOut = propagatorName;
+                    FourFermionFullyConnectedPar.lIn = leptonPropagatorName_1;
+                    FourFermionFullyConnectedPar.lOut = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "1010";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_0110 to disk
+                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_0110_" + name + "_" + name;
+                    FourFermionFullyConnectedPar.qIn = propagatorName;
+                    FourFermionFullyConnectedPar.qOut = propagatorName_1;
+                    FourFermionFullyConnectedPar.lIn = leptonPropagatorName_1;
+                    FourFermionFullyConnectedPar.lOut = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "0110";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_0020 to disk
+                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_0020_" + name + "_" + name;
+                    FourFermionFullyConnectedPar.qIn = propagatorName;
+                    FourFermionFullyConnectedPar.qOut = propagatorName;
+                    FourFermionFullyConnectedPar.lIn = leptonPropagatorName_2;
+                    FourFermionFullyConnectedPar.lOut = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "0020";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_00S0 to disk
+                    std::string FourFermionFullyConnectedName = "MOM_FourFermion_00S0_" + name + "_" + name;
+                    FourFermionFullyConnectedPar.qIn = propagatorName;
+                    FourFermionFullyConnectedPar.qOut = propagatorName;
+                    FourFermionFullyConnectedPar.lIn = leptonPropagatorName_S;
+                    FourFermionFullyConnectedPar.lOut = leptonPropagatorName;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "00S0";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+                }
+                else
+                {
+                    // Compute and save FourQuarkFullyConnected to disk
+                    std::string FourQuarkFullyConnectedName = "MOM_FourQuark_00_" + name + "_" + name;
+                    FourQuarkFullyConnectedPar.qIn = propagatorName;
+                    FourQuarkFullyConnectedPar.qOut = propagatorName;
+                    FourQuarkFullyConnectedPar.output = momentumFolder + FourQuarkFullyConnectedName;
+                    application.createModule<MNPR::FourQuarkFullyConnected>(FourQuarkFullyConnectedName, FourQuarkFullyConnectedPar);
+
+                    vertexEntry.qIn = FourQuarkFullyConnectedPar.qIn;
+                    vertexEntry.qOut = FourQuarkFullyConnectedPar.qOut;
+                    vertexEntry.photon_insertions = "00";
+                    application.setResultMetadata(FourQuarkFullyConnectedName, "fourquark", vertexEntry);
+                }
             }
         }
 
@@ -761,17 +943,183 @@ int main(int argc, char *argv[])
 
             if (fourquark)
             {
-                // Compute and save FourQuarkFullyConnected to disk
-                std::string FourQuarkFullyConnectedName = "SMOM_FourQuark_00_" + name_in + "_" + name_out;
-                FourQuarkFullyConnectedPar.qIn = "Q_0_" + name_in;
-                FourQuarkFullyConnectedPar.qOut = "Q_0_" + name_out;
-                FourQuarkFullyConnectedPar.output = momentumFolder + FourQuarkFullyConnectedName;
-                application.createModule<MNPR::FourQuarkFullyConnected>(FourQuarkFullyConnectedName, FourQuarkFullyConnectedPar);
+                if (QED)
+                {
+                    // Compute and save FourFermionFullyConnected to disk
+                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_0000_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedPar.qIn = "Q_0_" + name_in;
+                    FourFermionFullyConnectedPar.qOut = "Q_0_" + name_out;
+                    FourFermionFullyConnectedPar.lIn = "L_0_" + name_in;
+                    FourFermionFullyConnectedPar.lOut = "L_0_" + name_out;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
 
-                vertexEntry.qIn = FourQuarkFullyConnectedPar.qIn;
-                vertexEntry.qOut = FourQuarkFullyConnectedPar.qOut;
-                vertexEntry.photon_insertions = "00";
-                application.setResultMetadata(FourQuarkFullyConnectedName, "fourquark", vertexEntry);
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "0000";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_1100 to disk
+                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_1100_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedPar.qIn = "Q_1_" + name_in;
+                    FourFermionFullyConnectedPar.qOut = "Q_1_" + name_out;
+                    FourFermionFullyConnectedPar.lIn = "L_0_" + name_in;
+                    FourFermionFullyConnectedPar.lOut = "L_0_" + name_out;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "1100";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_2000 to disk
+                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_2000_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedPar.qIn = "Q_2_" + name_in;
+                    FourFermionFullyConnectedPar.qOut = "Q_0_" + name_out;
+                    FourFermionFullyConnectedPar.lIn = "L_0_" + name_in;
+                    FourFermionFullyConnectedPar.lOut = "L_0_" + name_out;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "2000";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_0200 to disk
+                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_0200_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedPar.qIn = "Q_0_" + name_in;
+                    FourFermionFullyConnectedPar.qOut = "Q_2_" + name_out;
+                    FourFermionFullyConnectedPar.lIn = "L_0_" + name_in;
+                    FourFermionFullyConnectedPar.lOut = "L_0_" + name_out;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "0200";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_S000 to disk
+                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_S000_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedPar.qIn = "Q_S_" + name_in;
+                    FourFermionFullyConnectedPar.qOut = "Q_0_" + name_out;
+                    FourFermionFullyConnectedPar.lIn = "L_0_" + name_in;
+                    FourFermionFullyConnectedPar.lOut = "L_0_" + name_out;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "S000";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_0S00 to disk
+                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_0S00_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedPar.qIn = "Q_0_" + name_in;
+                    FourFermionFullyConnectedPar.qOut = "Q_S_" + name_out;
+                    FourFermionFullyConnectedPar.lIn = "L_0_" + name_in;
+                    FourFermionFullyConnectedPar.lOut = "L_0_" + name_out;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "0S00";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_1010 to disk
+                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_1010_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedPar.qIn = "Q_1_" + name_in;
+                    FourFermionFullyConnectedPar.qOut = "Q_0_" + name_out;
+                    FourFermionFullyConnectedPar.lIn = "L_1_" + name_in;
+                    FourFermionFullyConnectedPar.lOut = "L_0_" + name_out;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "1010";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_0110 to disk
+                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_0110_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedPar.qIn = "Q_0_" + name_in;
+                    FourFermionFullyConnectedPar.qOut = "Q_1_" + name_out;
+                    FourFermionFullyConnectedPar.lIn = "L_1_" + name_in;
+                    FourFermionFullyConnectedPar.lOut = "L_0_" + name_out;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "0110";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_0020 to disk
+                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_0020_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedPar.qIn = "Q_0_" + name_in;
+                    FourFermionFullyConnectedPar.qOut = "Q_0_" + name_out;
+                    FourFermionFullyConnectedPar.lIn = "L_2_" + name_in;
+                    FourFermionFullyConnectedPar.lOut = "L_0_" + name_out;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "0020";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+
+                    // Compute and save FourFermionFullyConnected_00S0 to disk
+                    std::string FourFermionFullyConnectedName = "SMOM_FourFermion_00S0_" + name_in + "_" + name_out;
+                    FourFermionFullyConnectedPar.qIn = "Q_0_" + name_in;
+                    FourFermionFullyConnectedPar.qOut = "Q_0_" + name_out;
+                    FourFermionFullyConnectedPar.lIn = "L_S_" + name_in;
+                    FourFermionFullyConnectedPar.lOut = "L_0_" + name_out;
+                    FourFermionFullyConnectedPar.output = momentumFolder + FourFermionFullyConnectedName;
+                    application.createModule<MNPR::FourFermionFullyConnected>(FourFermionFullyConnectedName, FourFermionFullyConnectedPar);
+
+                    fourFermionEntry.qIn = FourFermionFullyConnectedPar.qIn;
+                    fourFermionEntry.qOut = FourFermionFullyConnectedPar.qOut;
+                    fourFermionEntry.lIn = FourFermionFullyConnectedPar.lIn;
+                    fourFermionEntry.lOut = FourFermionFullyConnectedPar.lOut;
+                    fourFermionEntry.photon_insertions = "00S0";
+                    application.setResultMetadata(FourFermionFullyConnectedName, "fourfermion", fourFermionEntry);
+                }
+
+                else
+                {
+                    // Compute and save FourQuarkFullyConnected to disk
+                    std::string FourQuarkFullyConnectedName = "SMOM_FourQuark_00_" + name_in + "_" + name_out;
+                    FourQuarkFullyConnectedPar.qIn = "Q_0_" + name_in;
+                    FourQuarkFullyConnectedPar.qOut = "Q_0_" + name_out;
+                    FourQuarkFullyConnectedPar.output = momentumFolder + FourQuarkFullyConnectedName;
+                    application.createModule<MNPR::FourQuarkFullyConnected>(FourQuarkFullyConnectedName, FourQuarkFullyConnectedPar);
+
+                    vertexEntry.qIn = FourQuarkFullyConnectedPar.qIn;
+                    vertexEntry.qOut = FourQuarkFullyConnectedPar.qOut;
+                    vertexEntry.photon_insertions = "00";
+                    application.setResultMetadata(FourQuarkFullyConnectedName, "fourquark", vertexEntry);
+                }
             }
         }
     }
