@@ -336,7 +336,6 @@ int main(int argc, char *argv[])
     {
         FourFermionFullyConnectedPar.pIn = momentumPar.mom;
         FourFermionFullyConnectedPar.pOut = momentumPar.mom;
-        FourFermionFullyConnectedPar.gamma_basis = "diagonal_va";
     }
 
     // Prepare stochastic electromagnetic field and sequential insertion for the QED case
