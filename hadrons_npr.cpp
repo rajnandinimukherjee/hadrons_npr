@@ -335,7 +335,7 @@ int main(int argc, char *argv[])
     if (QED)
     {
         stochasticQedLPar.gauge = PhotonR::Gauge::feynman;
-        stochasticQedLPar.improvement = "";
+        stochasticQedLPar.improvement = "1.666666667e-1"; // QED_r
         application.createModule<MGauge::StochasticQedL>("StochEm", stochasticQedLPar);
 
         seqAslashPar.tA = 0;
