@@ -63,7 +63,10 @@ namespace NprInputs
     public:
         GRID_SERIALIZABLE_CLASS_MEMBERS(GaugeField,
                                         std::string, gaugeFieldType,
-                                        std::string, gaugeFieldPath);
+                                        std::string, gaugeFieldPath,
+                                        bool,        smear,
+                                        int,         steps,
+                                        double,      rho);
     };
 
     class Action : Serializable
@@ -204,8 +207,20 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    std::string gaugeFieldName = "gauge";
+    if (par.gaugeField.smear)
+    {
+        MGauge::StoutSmearing::Par smgaugePar;
+        smgaugePar.gauge = "gauge";
+        smgaugePar.steps = par.gaugeField.steps;
+        smgaugePar.rho = par.gaugeField.rho;
+        application.createModule<MGauge::StoutSmearing>("smgauge", smgaugePar);
+        gaugeFieldName = "smgauge";
+
+    }
+
     MUtilities::GaugeSinglePrecisionCast::Par gaugeFPar;
-    gaugeFPar.field = "gauge";
+    gaugeFPar.field = gaugeFieldName;
     application.createModule<MUtilities::GaugeSinglePrecisionCast>("gauge_F", gaugeFPar);
 
     if ((QED) && (fourquark))
@@ -218,7 +233,7 @@ int main(int argc, char *argv[])
 
     // Set base parameters for fermion action
     FermionAction::Par actionDPar;
-    actionDPar.gauge = "gauge";
+    actionDPar.gauge = gaugeFieldName;
     actionDPar.mass = par.action.mass;
     actionDPar.boundary = "1.0 1.0 1.0 1.0";
     actionDPar.twist = "0 0 0 0";

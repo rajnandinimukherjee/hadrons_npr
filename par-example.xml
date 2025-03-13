@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="2.0"?>
 <grid>
   <global>
     <!-- trajectory loop, the trajectory number is appended as a suffix -->
@@ -61,11 +61,14 @@
     <delta_ap2>0.25</delta_ap2> <!-- Momentum sampling frequency in units of (ap)^2 -->
     <QED>false</QED> <!-- Decides whether QED_L corrections to order alpha_em are calculated.-->
     <fourquark>false</fourquark> <!-- Decides whether fourquark vertices are calcluated. -->
-    <outputFolder>npr_twisted</outputFolder> <!-- Path in which the output is saved. -->
+    <outputFolder>npr_data</outputFolder> <!-- Path in which the output is saved. -->
   </nprOptions>
   <gaugeField>
     <gaugeFieldType>Unit</gaugeFieldType> <!-- Type of the gauge field, can be Unit, Nersc or openQcd -->
     <gaugeFieldPath></gaugeFieldPath> <!-- Path to the gauge fields, is ignored if gaugeFieldType Unit is chosen. -->
+    <smear>true</smear> <!-- Whether gauge field is stout smeared or not -->
+    <steps>3</steps> <!-- Number of stout smearing steps -->
+    <rho>0.1</rho> <!-- Stout smearing parameter rho -->
   </gaugeField>
   <action>
     <mass>0.15</mass> <!-- quark mass -->
