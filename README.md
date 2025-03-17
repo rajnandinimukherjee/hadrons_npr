@@ -19,10 +19,10 @@ For Nvidia GPU accelerated architectures cross-compile via:
 ./bootstrap.sh
 mkdir build
 cd build
-../configure --host=aarch64-linux-gnu --with-hadrons=<Hadrons install prefix> CC=gcc CXX=nvcc CPPFLAGS="-x cu -DBICGSTAB"
+../configure --host=aarch64-linux-gnu --with-hadrons=<Hadrons install prefix> CC=gcc CXX=nvcc CPPFLAGS="-x cu -DBICGSTAB -DWILSONCLOVER"
 make
 ```
-by default the `WilsonExpClover` action and the `MixedPrecisionRBPrecCG` solver are used. These defaults can be altered by specifying `CPPFLAGS` as indicated above. For now the Möbius DWF fermion action and the `MixedPrecisionRBPrecBiCGSTAB` are available as alternatives. (Note that the DWF action only works with the standard CG solver)
+by default the `WilsonExpClover` action and the `MixedPrecisionRBPrecCG` solver are used. These defaults can be altered by specifying `CPPFLAGS` as indicated above. For now the WilsonClover action, Möbius DWF fermion action, and the `MixedPrecisionRBPrecBiCGSTAB` are available as alternatives. (Note that the DWF action only works with the standard CG solver).
 
 To execute the program run
 ``` bash

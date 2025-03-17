@@ -50,11 +50,12 @@ namespace NprInputs
     {
     public:
         GRID_SERIALIZABLE_CLASS_MEMBERS(NprOptions,
-                                        double,     min_ap2,
-                                        double,     max_ap2,
-                                        double,     delta_ap2,
-                                        bool,       QED,
-                                        bool,       fourquark,
+                                        double,      min_ap2,
+                                        double,      max_ap2,
+                                        double,      delta_ap2,
+                                        bool,        QED,
+                                        bool,        fourquark,
+                                        std::string, gamma_basis,
                                         std::string, outputFolder);
     };
 
@@ -72,11 +73,15 @@ namespace NprInputs
     class Action : Serializable
     {
     public:
-        #ifdef MOBIUS
+        #if defined(MOBIUS)
             GRID_SERIALIZABLE_CLASS_MEMBERS(Action,
                                             double, mass,
                                             double, M5,
                                             int, Ls);
+        #elif defined(WILSONCLOVER)
+            GRID_SERIALIZABLE_CLASS_MEMBERS(Action,
+                                            double, mass,
+                                            double, csw);
         #else // WilsonExpClover
             GRID_SERIALIZABLE_CLASS_MEMBERS(Action,
                                             double, mass,
@@ -157,6 +162,7 @@ int main(int argc, char *argv[])
     double delta_ap2 = par.nprOptions.delta_ap2;
     bool QED = par.nprOptions.QED;
     bool fourquark = par.nprOptions.fourquark;
+    std::string gamma_basis = par.nprOptions.gamma_basis;
     std::string outputFolder = par.nprOptions.outputFolder;
 
     std::ostringstream massStream;
@@ -172,9 +178,12 @@ int main(int argc, char *argv[])
         using MixedPrecisionSolver = MSolver::MixedPrecisionRBPrecCG;
     #endif
 
-    #ifdef MOBIUS
+    #if defined(MOBIUS)
         using FermionAction = MAction::MobiusDWF;
         using FermionActionF = MAction::MobiusDWFF;
+    #elif defined(WILSONCLOVER)
+        using FermionAction = MAction::WilsonClover;
+        using FermionActionF = MAction::WilsonCloverF;
     #else // WilsonExpClover
         using FermionAction = MAction::WilsonExpClover;
         using FermionActionF = MAction::WilsonExpCloverF;
@@ -237,11 +246,15 @@ int main(int argc, char *argv[])
     actionDPar.mass = par.action.mass;
     actionDPar.boundary = "1.0 1.0 1.0 1.0";
     actionDPar.twist = "0 0 0 0";
-    #ifdef MOBIUS
+    #if defined(MOBIUS)
         actionDPar.Ls = par.action.Ls;
         actionDPar.M5 = par.action.M5;
         actionDPar.b = 1.5;
         actionDPar.c = 0.5;
+    #elif defined(WILSONCLOVER)
+        actionDPar.cF = 1.0;
+        actionDPar.csw_r = par.action.csw;
+        actionDPar.csw_t = par.action.csw;
     #else // WilsonExpClover
         actionDPar.cF = 1.0;
         actionDPar.csw_r = par.action.csw;
@@ -253,13 +266,17 @@ int main(int argc, char *argv[])
     actionFPar.mass = actionDPar.mass;
     actionFPar.boundary = actionDPar.boundary;
     actionFPar.twist = actionDPar.twist;
-    #ifdef MOBIUS
+    #if defined(MOBIUS)
         actionFPar.Ls = actionDPar.Ls;
         actionFPar.M5 = actionDPar.M5;
         actionFPar.b = actionDPar.b;
         actionFPar.c = actionDPar.c;
+    #elif defined(WILSONCLOVER)
+        actionFPar.cF = 1.0;
+        actionFPar.csw_r = actionDPar.csw_r;
+        actionFPar.csw_t = actionDPar.csw_t;
     #else // WilsonExpClover
-        actionFPar.cF = actionDPar.cF;
+        actionFPar.cF = 1.0;
         actionFPar.csw_r = actionDPar.csw_r;
         actionFPar.csw_t = actionDPar.csw_t;
     #endif
@@ -279,11 +296,15 @@ int main(int argc, char *argv[])
         freeActionDPar.mass = 0.0;
         freeActionDPar.boundary = "1.0 1.0 1.0 1.0";
         freeActionDPar.twist = "0 0 0 0";
-        #ifdef MOBIUS
+        #if defined(MOBIUS)
             freeActionDPar.Ls = par.action.Ls;
             freeActionDPar.M5 = par.action.M5;
             freeActionDPar.b = 1.5;
             freeActionDPar.c = 0.5;
+        #elif defined(WILSONCLOVER)
+            freeActionDPar.cF = 1.0;
+            freeActionDPar.csw_r = 1.0;
+            freeActionDPar.csw_t = 1.0;
         #else // WilsonExpClover
             freeActionDPar.cF = 1.0;
             freeActionDPar.csw_r = 1.0;
@@ -294,11 +315,15 @@ int main(int argc, char *argv[])
         freeActionFPar.mass = freeActionDPar.mass;
         freeActionFPar.boundary = freeActionDPar.boundary;
         freeActionFPar.twist = freeActionDPar.twist;
-        #ifdef MOBIUS
+        #if defined(MOBIUS)
             freeActionFPar.Ls = 8;
             freeActionFPar.M5 = 1.0;
             freeActionFPar.b = freeActionDPar.b;
             freeActionFPar.c = freeActionDPar.c;
+        #elif defined(WILSONCLOVER)
+            freeActionFPar.cF = freeActionDPar.cF;
+            freeActionFPar.csw_r = freeActionDPar.csw_r;
+            freeActionFPar.csw_t = freeActionDPar.csw_t;
         #else // WilsonExpClover
             freeActionFPar.cF = freeActionDPar.cF;
             freeActionFPar.csw_r = freeActionDPar.csw_r;
@@ -344,7 +369,7 @@ int main(int argc, char *argv[])
     {
         FourQuarkFullyConnectedPar.pIn = momentumPar.mom;
         FourQuarkFullyConnectedPar.pOut = momentumPar.mom;
-        FourQuarkFullyConnectedPar.gamma_basis = "va_av";
+        FourQuarkFullyConnectedPar.gamma_basis = gamma_basis;
     }
     MNPR::FourFermionFullyConnected::Par FourFermionFullyConnectedPar;
     if ((QED) && (fourquark))
